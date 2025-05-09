@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import './App.css';
+import React, { useState } from "react";
+import "./App.css";
 
 function App() {
   const [view, setView] = useState(null); // 'login' or 'register'
@@ -8,25 +8,25 @@ function App() {
     <div className="App">
       <h1>Welcome</h1>
       <div>
-        <button onClick={() => setView('login')}>Login</button>
-        <button onClick={() => setView('register')}>Register</button>
+        <button onClick={() => setView("login")}>Login</button>
+        <button onClick={() => setView("register")}>Register</button>
       </div>
 
-      {view === 'login' && <LoginForm />}
-      {view === 'register' && <RegisterForm />}
+      {view === "login" && <LoginForm />}
+      {view === "register" && <RegisterForm />}
     </div>
   );
 }
 
 function LoginForm() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    const res = await fetch('http://localhost:8080/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const res = await fetch("http://localhost:8080/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
     const data = await res.json();
@@ -42,30 +42,38 @@ function LoginForm() {
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         required
-      /><br />
+      />
+      <br />
       <input
         type="password"
         placeholder="Password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         required
-      /><br />
+      />
+      <br />
       <button type="submit">Login</button>
     </form>
   );
 }
 
 function RegisterForm() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   const handleRegister = async (e) => {
     e.preventDefault();
-    const res = await fetch('http://localhost:8080/api/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const res = await fetch("http://localhost:8080/api/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Error ${res.status}: ${text}`);
+    }
+
     const data = await res.json();
     alert(`Register response: ${JSON.stringify(data)}`);
   };
@@ -79,14 +87,16 @@ function RegisterForm() {
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         required
-      /><br />
+      />
+      <br />
       <input
         type="password"
         placeholder="Password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         required
-      /><br />
+      />
+      <br />
       <button type="submit">Register</button>
     </form>
   );

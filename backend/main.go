@@ -6,7 +6,12 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/smtp"
 	"os"
+
+	"github.com/google/uuid"
+	"github.com/joho/godotenv"
+	"golang.org/x/crypto/bcrypt"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -46,15 +51,21 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var storedPassword string
-	err := db.QueryRow("SELECT password FROM users WHERE email = ?", creds.Email).Scan(&storedPassword)
+	var hashedPassword string
+	var verified bool
+	err := db.QueryRow("SELECT password, verified FROM users WHERE email = ?", creds.Email).Scan(&hashedPassword, &verified)
 	if err != nil {
-		http.Error(w, "User not found or database error", http.StatusUnauthorized)
+		http.Error(w, "Invalid email", http.StatusUnauthorized)
 		return
 	}
 
-	if creds.Password != storedPassword {
-		http.Error(w, "Invalid password", http.StatusUnauthorized)
+	if err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(creds.Password)); err != nil {
+		http.Error(w, "Incorrect password", http.StatusUnauthorized)
+		return
+	}
+
+	if !verified {
+		http.Error(w, "Email not verified", http.StatusForbidden)
 		return
 	}
 
@@ -73,16 +84,75 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := db.Exec("INSERT INTO users (email, password) VALUES (?, ?)", creds.Email, creds.Password)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(creds.Password), bcrypt.DefaultCost)
 	if err != nil {
-		http.Error(w, "User already exists or database error", http.StatusBadRequest)
+		http.Error(w, "Error hashing password", http.StatusInternalServerError)
 		return
 	}
 
-	json.NewEncoder(w).Encode(Response{Message: "Registration successful"})
+	token := uuid.New().String()
+
+	if err := sendVerificationEmail(creds.Email, token); err != nil {
+		log.Fatalf("SMTP test failed: %v", err)
+		http.Error(w, "Failed to send verification email", http.StatusInternalServerError)
+		return
+	}
+
+	_, err = db.Exec("INSERT INTO users (email, password, verification_token) VALUES (?, ?, ?)",
+		creds.Email, hashedPassword, token)
+	if err != nil {
+		http.Error(w, "User already exists or DB error", http.StatusBadRequest)
+		return
+	}
+
+	json.NewEncoder(w).Encode(Response{Message: "Registration successful. Check your email to verify your account."})
+}
+
+func verifyHandler(w http.ResponseWriter, r *http.Request) {
+	token := r.URL.Query().Get("token")
+	if token == "" {
+		http.Error(w, "Missing token", http.StatusBadRequest)
+		return
+	}
+
+	res, err := db.Exec("UPDATE users SET verified = TRUE WHERE verification_token = ?", token)
+	if err != nil {
+		http.Error(w, "Verification failed", http.StatusInternalServerError)
+		return
+	}
+
+	rows, _ := res.RowsAffected()
+	if rows == 0 {
+		http.Error(w, "Invalid token", http.StatusBadRequest)
+		return
+	}
+
+	json.NewEncoder(w).Encode(Response{Message: "Email verified successfully"})
+}
+
+func sendVerificationEmail(toEmail, token string) error {
+	from := os.Getenv("EMAIL_FROM")         // e.g. your Gmail
+	password := os.Getenv("EMAIL_PASSWORD") // App-specific password
+
+	smtpHost := "smtp.gmail.com"
+	smtpPort := "587"
+
+	auth := smtp.PlainAuth("", from, password, smtpHost)
+
+	verificationLink := fmt.Sprintf("http://localhost:8080/api/verify?token=%s", token)
+	subject := "Subject: Verify your account\n"
+	body := fmt.Sprintf("Click the following link to verify your email:\n\n%s", verificationLink)
+	msg := []byte(subject + "\n" + body)
+
+	return smtp.SendMail(smtpHost+":"+smtpPort, auth, from, []string{toEmail}, msg)
 }
 
 func main() {
+
+	if err := godotenv.Load(); err != nil {
+		log.Println("Warning: .env file not found")
+	}
+
 	var err error
 
 	// Use environment variables or defaults
@@ -105,6 +175,7 @@ func main() {
 
 	http.HandleFunc("/api/login", withCORS(loginHandler))
 	http.HandleFunc("/api/register", withCORS(registerHandler))
+	http.HandleFunc("/api/verify", withCORS(verifyHandler))
 
 	fmt.Println("Server running on http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
