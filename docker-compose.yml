@@ -9,6 +9,7 @@ services:
       MYSQL_DATABASE: auth_demo
     volumes:
       - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - mysql-data:/var/lib/mysql
     ports:
       - "3306:3306"
 
