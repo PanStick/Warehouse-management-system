@@ -41,6 +41,8 @@ const TopBar = () => {
   const handleLogout = () => {
     setRole(null);
     localStorage.removeItem("role");
+    localStorage.removeItem("userId");
+    localStorage.removeItem("email");
     navigate('/');
   };
 

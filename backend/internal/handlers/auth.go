@@ -29,8 +29,9 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	var hash string
 	var verified bool
 	var role string
+	var userID int
 
-	err := db.DB.QueryRow("SELECT password, verified, role FROM users WHERE email = ?", creds.Email).Scan(&hash, &verified, &role)
+	err := db.DB.QueryRow("SELECT id, password, verified, role FROM users WHERE email = ?", creds.Email).Scan(&userID, &hash, &verified, &role)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			http.Error(w, "Invalid email", http.StatusUnauthorized)
@@ -53,10 +54,15 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(struct {
 		Message string `json:"message"`
 		Role    string `json:"role"`
+		UserID  int    `json:"userId"`
+		Email   string `json:"email"`
 	}{
 		Message: "Login successful",
 		Role:    role,
+		UserID:  userID,
+		Email:   creds.Email,
 	})
+
 }
 
 func RegisterHandler(w http.ResponseWriter, r *http.Request) {

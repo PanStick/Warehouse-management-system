@@ -28,6 +28,8 @@ export default function LoginForm() {
 
       const role = data.role;
       localStorage.setItem('role', role);
+      localStorage.setItem("userId", data.userId);
+      localStorage.setItem("email", data.email);
       setRole(role);
 
       switch (role) {
