@@ -1,16 +1,15 @@
-# Node modules
 frontend/node_modules/
-# Build output
+
 frontend/dist/
-# Go binaries
 backend/*.exe
+
 backend/*.out
 backend/*.test
-# IDE configs
+
 .vscode/
 .idea/
-# Docker volumes
+
 docker/mysql/*.sql
-# Environment
+
 .env
 /backend/assets/images/products/
