@@ -25,7 +25,14 @@ services:
   frontend:
     build: 
       context: ./frontend
+      dockerfile: Dockerfile.dev
     container_name: react-frontend
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+      - /app/node_modules
+    working_dir: /app
+    command: npm start
     ports:
       - "3000:3000"
     stdin_open: true

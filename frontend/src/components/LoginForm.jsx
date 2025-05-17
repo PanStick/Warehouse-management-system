@@ -1,17 +1,15 @@
 import React, { useState } from "react";
 import { TextField, Button, Typography, Box } from "@mui/material";
 import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 export default function LoginForm() {
-  console.log("login form rendered");
   const { setRole } = useAuth();
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleLogin = async (e) => {
-    console.log("before prevent default");
-    //e.preventDefault();
-    console.log("Login button clicked");
+  const handleLogin = async () => {
 
     try {
       const res = await fetch("http://localhost:8080/api/login", {
@@ -28,8 +26,26 @@ export default function LoginForm() {
       const data = await res.json();
       alert(data.message);
 
-      if (email === "demo") setRole("demo");
-      else setRole("customer");
+      const role = data.role;
+      setRole(role);
+
+      switch (role) {
+        case "customer":
+          navigate("/customer-home");
+          break;
+        case "worker":
+          navigate("/worker-home");
+          break;
+        case "admin":
+          navigate("/admin-home");
+          break;
+        case "demo":
+          navigate("/customer-home"); // default for demo
+          break;
+        default:
+          navigate("/");
+      }
+
     } catch (err) {
       alert(err.message);
     }
