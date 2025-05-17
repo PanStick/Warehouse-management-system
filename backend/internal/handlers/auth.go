@@ -55,7 +55,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		Role    string `json:"role"`
 	}{
 		Message: "Login successful",
-		Role:    role, // <-- You need to scan this from the DB too
+		Role:    role,
 	})
 }
 

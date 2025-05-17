@@ -24,9 +24,10 @@ export default function LoginForm() {
       }
 
       const data = await res.json();
-      alert(data.message);
+      //alert(data.message);
 
       const role = data.role;
+      localStorage.setItem('role', role);
       setRole(role);
 
       switch (role) {

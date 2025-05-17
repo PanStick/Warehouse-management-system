@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   AppBar, Box, Toolbar, IconButton, Typography, Menu,
   Container, Button, Tooltip, MenuItem
@@ -32,15 +32,22 @@ const TopBar = () => {
   const handleCloseNavMenu = () => setAnchorElNav(null);
   const handleCloseUserMenu = () => setAnchorElUser(null);
 
+
+  useEffect(() => {
+    setAnchorElNav(null);
+    setAnchorElUser(null);
+  }, [role]);
+
   const handleLogout = () => {
     setRole(null);
-    localStorage.clear();
+    localStorage.removeItem("role");
     navigate('/');
   };
 
   const handlePageNavigate = (path) => {
     navigate(path);
     handleCloseNavMenu();
+    handleCloseUserMenu();
   };
 
   return (
@@ -55,7 +62,7 @@ const TopBar = () => {
             </IconButton>
             <Menu
               anchorEl={anchorElNav}
-              open={Boolean(anchorElNav)}
+              open={Boolean(anchorElNav && anchorElNav instanceof Element)}
               onClose={handleCloseNavMenu}
               anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
               transformOrigin={{ vertical: 'top', horizontal: 'left' }}
@@ -101,7 +108,7 @@ const TopBar = () => {
                 </Tooltip>
                 <Menu
                   anchorEl={anchorElUser}
-                  open={Boolean(anchorElUser)}
+                  open={Boolean(anchorElUser && anchorElUser instanceof Element && document.body.contains(anchorElUser))}
                   onClose={handleCloseUserMenu}
                 >
                   <MenuItem onClick={handleLogout}>
