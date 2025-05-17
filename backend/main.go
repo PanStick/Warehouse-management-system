@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/smtp"
 	"os"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/joho/godotenv"
@@ -31,10 +32,13 @@ func withCORS(handler http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-		if r.Method == "OPTIONS" {
-			w.WriteHeader(http.StatusOK)
+		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
+
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
 			return
 		}
+
 		handler(w, r)
 	}
 }
@@ -134,8 +138,8 @@ func sendVerificationEmail(toEmail, token string) error {
 	from := os.Getenv("EMAIL_FROM")         // e.g. your Gmail
 	password := os.Getenv("EMAIL_PASSWORD") // App-specific password
 
-	smtpHost := "smtp.gmail.com"
-	smtpPort := "587"
+	smtpHost := os.Getenv("SMTP_HOST")
+	smtpPort := os.Getenv("SMTP_PORT")
 
 	auth := smtp.PlainAuth("", from, password, smtpHost)
 
@@ -144,7 +148,12 @@ func sendVerificationEmail(toEmail, token string) error {
 	body := fmt.Sprintf("Click the following link to verify your email:\n\n%s", verificationLink)
 	msg := []byte(subject + "\n" + body)
 
-	return smtp.SendMail(smtpHost+":"+smtpPort, auth, from, []string{toEmail}, msg)
+	addr := smtpHost + ":" + smtpPort
+	err := smtp.SendMail(addr, auth, from, []string{toEmail}, msg)
+	if err != nil {
+		log.Printf("Failed to send email to %s via %s: %v", toEmail, addr, err)
+	}
+	return err
 }
 
 func main() {
@@ -167,6 +176,19 @@ func main() {
 	if err != nil {
 		log.Fatalf("DB connection failed: %v", err)
 	}
+
+	for i := range 10 {
+		err = db.Ping()
+		if err == nil {
+			break
+		}
+		log.Printf("Waiting for database... (%d/10)", i+1)
+		time.Sleep(2 * time.Second)
+	}
+	if err != nil {
+		log.Fatalf("DB unreachable after retries: %v", err)
+	}
+
 	defer db.Close()
 
 	if err = db.Ping(); err != nil {
@@ -186,4 +208,11 @@ func getEnv(key, fallback string) string {
 		return val
 	}
 	return fallback
+}
+
+func hasRole(userRole string, requiredRole string) bool {
+	if userRole == "demo" {
+		return true
+	}
+	return userRole == requiredRole
 }
