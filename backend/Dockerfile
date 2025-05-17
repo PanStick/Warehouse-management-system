@@ -15,6 +15,7 @@ FROM golang:1.24
 WORKDIR /app
 
 COPY --from=builder /app/server .
+COPY --from=builder /app/assets ./assets 
 COPY .env .env
 
 EXPOSE 8080
