@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import TopBar from './components/TopBar';
-import { useAuth } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import HomeCustomer from './pages/HomeCustomer';
 import HomeWorker from './pages/HomeWorker';
 import HomeAdmin from './pages/HomeAdmin';
@@ -38,7 +38,9 @@ function AppContent() {
 export default function App() {
   return (
     <Router>
+      <AuthProvider>
       <AppContent />
+      </AuthProvider>
     </Router>
   );
 }

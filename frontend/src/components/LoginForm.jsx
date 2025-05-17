@@ -1,106 +1,66 @@
-import React, { useState } from 'react';
-import {
-  AppBar, Box, Toolbar, IconButton, Typography, Menu,
-  Container, Button, Tooltip, MenuItem
-} from '@mui/material';
-import MenuIcon from '@mui/icons-material/Menu';
-import { useAuth } from '../context/AuthContext';
+import React, { useState } from "react";
+import { TextField, Button, Typography, Box } from "@mui/material";
+import { useAuth } from "../context/AuthContext";
 
-const rolePages = {
-  customer: ['Customer Home'],
-  worker: ['Worker Home'],
-  admin: ['Admin Home'],
-  demo: ['Customer Home', 'Worker Home', 'Admin Home']
-};
+export default function LoginForm() {
+  console.log("login form rendered");
+  const { setRole } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-const TopBar = () => {
-  const [anchorElNav, setAnchorElNav] = useState(null);
-  const [anchorElUser, setAnchorElUser] = useState(null);
+  const handleLogin = async (e) => {
+    console.log("before prevent default");
+    //e.preventDefault();
+    console.log("Login button clicked");
 
-  const {role, setRole} = useAuth();
-  const loggedIn = !!role;
-  const pages = role ? (rolePages[role] || ['Home']) : ['Home'];
+    try {
+      const res = await fetch("http://localhost:8080/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Login failed: ${text}`);
+      }
 
-  const handleOpenNavMenu = (event) => setAnchorElNav(event.currentTarget);
-  const handleOpenUserMenu = (event) => setAnchorElUser(event.currentTarget);
-  const handleCloseNavMenu = () => setAnchorElNav(null);
-  const handleCloseUserMenu = () => setAnchorElUser(null);
+      const data = await res.json();
+      alert(data.message);
 
-  const handleLogout = () => {
-    setRole(null);
-    localStorage.clear();
+      if (email === "demo") setRole("demo");
+      else setRole("customer");
+    } catch (err) {
+      alert(err.message);
+    }
   };
 
   return (
-    <AppBar position="static">
-      <Container maxWidth="xl">
-        <Toolbar disableGutters>
-
-          {/* Mobile menu */}
-          <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'none' } }}>
-            <IconButton size="large" onClick={handleOpenNavMenu} color="inherit">
-              <MenuIcon />
-            </IconButton>
-            <Menu
-              anchorEl={anchorElNav}
-              open={Boolean(anchorElNav)}
-              onClose={handleCloseNavMenu}
-              anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-              transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-            >
-              {pages.map((page) => (
-                <MenuItem key={page} onClick={handleCloseNavMenu}>
-                  <Typography textAlign="center">{page}</Typography>
-                </MenuItem>
-              ))}
-            </Menu>
-          </Box>
-
-          {/* Desktop menu */}
-          <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' } }}>
-            {pages.map((page) => (
-              <Button key={page} onClick={handleCloseNavMenu} sx={{ my: 2, color: 'white' }}>
-                {page}
-              </Button>
-            ))}
-          </Box>
-
-          {/* Right side buttons */}
-          <Box sx={{ flexGrow: 0 }}>
-            {!loggedIn ? (
-              <>
-                <Button color="inherit" onClick={() => window.location.href = '/login'}>
-                  Login
-                </Button>
-                <Button color="inherit" onClick={() => window.location.href = '/register'}>
-                  Register
-                </Button>
-              </>
-            ) : (
-              <>
-                <Tooltip title="Open settings">
-                  <Button onClick={handleOpenUserMenu} sx={{ color: 'white' }}>
-                    My Account
-                  </Button>
-                </Tooltip>
-                <Menu
-                  anchorEl={anchorElUser}
-                  open={Boolean(anchorElUser)}
-                  onClose={handleCloseUserMenu}
-                >
-                  <MenuItem onClick={handleLogout}>
-                    <Typography textAlign="center">Logout</Typography>
-                  </MenuItem>
-                </Menu>
-              </>
-            )}
-          </Box>
-
-        </Toolbar>
-      </Container>
-    </AppBar>
+    <Box sx={{ mt: 2 }}>
+        <Typography variant="h5">Login</Typography>
+        <TextField
+          fullWidth
+          margin="normal"
+          label="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          type="email"
+          required
+          autoComplete="off"
+        />
+        <TextField
+          fullWidth
+          margin="normal"
+          label="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          type="password"
+          autoComplete="off"
+          required
+        />
+        <Button onClick={handleLogin} variant="contained" color="primary" component="button">
+          Login
+        </Button>
+    </Box>
   );
-};
-
-export default TopBar;
+}

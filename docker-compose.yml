@@ -23,7 +23,8 @@ services:
       - mysql
 
   frontend:
-    build: ./frontend
+    build: 
+      context: ./frontend
     container_name: react-frontend
     ports:
       - "3000:3000"

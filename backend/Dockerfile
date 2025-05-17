@@ -2,16 +2,14 @@ FROM golang:1.24 AS builder
 
 WORKDIR /app
 
-# First copy only go.mod and go.sum to leverage caching
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Now copy the rest of your source code
 COPY . .
 
-RUN go build -o server
+WORKDIR /app/cmd/server
+RUN go build -o /app/server
 
-# Final minimal image
 FROM golang:1.24
 
 WORKDIR /app
@@ -19,4 +17,5 @@ WORKDIR /app
 COPY --from=builder /app/server .
 COPY .env .env
 
+EXPOSE 8080
 CMD ["./server"]

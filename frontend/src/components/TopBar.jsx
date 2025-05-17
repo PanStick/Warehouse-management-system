@@ -25,7 +25,7 @@ const TopBar = () => {
 
   const { role, setRole } = useAuth();
   const loggedIn = !!role;
-  const pages = role ? (rolePages[role] || []) : [];
+  const pages = role ? (rolePages[role] || []) : [{label: "home", path: "/"}];
 
   const handleOpenNavMenu = (event) => setAnchorElNav(event.currentTarget);
   const handleOpenUserMenu = (event) => setAnchorElUser(event.currentTarget);
