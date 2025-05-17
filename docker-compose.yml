@@ -3,15 +3,34 @@ version: '3.8'
 services:
   mysql:
     image: mysql:8.0
-    container_name: mysql-db
-    restart: always
+    container_name: mysql
     environment:
       MYSQL_ROOT_PASSWORD: password
       MYSQL_DATABASE: auth_demo
+    volumes:
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "3306:3306"
-    volumes:
-      - mysql-data:/var/lib/mysql
+
+
+  backend:
+    build: ./backend
+    container_name: go-backend
+    env_file: ./backend/.env
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mysql
+
+  frontend:
+    build: ./frontend
+    container_name: react-frontend
+    ports:
+      - "3000:3000"
+    stdin_open: true
+    tty: true
+    depends_on:
+      - backend
 
 volumes:
   mysql-data:
