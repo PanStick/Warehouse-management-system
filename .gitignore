@@ -13,3 +13,4 @@ backend/*.test
 docker/mysql/*.sql
 # Environment
 .env
+/backend/assets/images/products/
