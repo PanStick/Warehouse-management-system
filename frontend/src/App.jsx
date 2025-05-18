@@ -12,6 +12,11 @@ import Cart from './pages/Cart';
 function AppContent() {
   const { role } = useAuth();
 
+  const hasAccess = (userRole, allowedRoles) => {
+    if (userRole === "demo") return true;
+    return allowedRoles.includes(userRole);
+  };
+
   return (
     <>
       <TopBar />
@@ -23,16 +28,16 @@ function AppContent() {
 
         {/* Protected routes based on role */}
         <Route path="/customer-home" element={
-          role === 'customer' || role === 'demo' ? <HomeCustomer /> : <Navigate to="/" />
+          hasAccess(role, ['customer']) ? <HomeCustomer /> : <Navigate to="/" />
         } />
         <Route path="/worker-home" element={
-          role === 'worker' || role === 'demo' ? <HomeWorker /> : <Navigate to="/" />
+          hasAccess(role, ['worker']) ? <HomeWorker /> : <Navigate to="/" />
         } />
         <Route path="/admin-home" element={
-          role === 'admin' || role === 'demo' ? <HomeAdmin /> : <Navigate to="/" />
+          hasAccess(role, ['admin']) ? <HomeAdmin /> : <Navigate to="/" />
         } />
         <Route path="/cart" element = {
-          role === 'customer' || role === 'demo' ? <Cart /> : <Navigate to="/" />
+          hasAccess(role, ['customer']) ? <Cart /> : <Navigate to="/" />
         } />
       </Routes>
     </>

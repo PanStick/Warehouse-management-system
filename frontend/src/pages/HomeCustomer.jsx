@@ -32,7 +32,7 @@ export default function HomeCustomer() {
     };
 
     localStorage.setItem("cart", JSON.stringify(updatedCart));
-    console.log(JSON.parse(localStorage.getItem("cart")));
+    // console.log(JSON.parse(localStorage.getItem("cart")));
     setQuantities(prev => ({ ...prev, [product.id]: 1 }));
   };
 
