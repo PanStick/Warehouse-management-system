@@ -7,6 +7,7 @@ import HomeWorker from './pages/HomeWorker';
 import HomeAdmin from './pages/HomeAdmin';
 import LoginForm from "./components/LoginForm";
 import RegisterForm from "./components/RegisterForm";
+import Cart from './pages/Cart';
 
 function AppContent() {
   const { role } = useAuth();
@@ -29,6 +30,9 @@ function AppContent() {
         } />
         <Route path="/admin-home" element={
           role === 'admin' || role === 'demo' ? <HomeAdmin /> : <Navigate to="/" />
+        } />
+        <Route path="/cart" element = {
+          role === 'customer' || role === 'demo' ? <Cart /> : <Navigate to="/" />
         } />
       </Routes>
     </>

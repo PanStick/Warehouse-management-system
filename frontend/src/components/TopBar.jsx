@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import {
   AppBar, Box, Toolbar, IconButton, Typography, Menu,
-  Container, Button, Tooltip, MenuItem
+  Container, Button, Tooltip, MenuItem, Badge
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
+import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -89,6 +90,14 @@ const TopBar = () => {
               </Button>
             ))}
           </Box>
+
+          {role === 'customer' || role === 'demo' ? (
+            <IconButton color="inherit" onClick={() => navigate('/cart')}>
+              <Badge color="secondary">
+                <ShoppingCartIcon />
+              </Badge>
+            </IconButton>
+          ) : null}
 
           {/* Right side buttons */}
           <Box sx={{ flexGrow: 0 }}>

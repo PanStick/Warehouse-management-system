@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"backend/internal/db"
@@ -25,6 +26,17 @@ func main() {
 	mux.HandleFunc("/api/register", middleware.WithCORS(handlers.RegisterHandler))
 	mux.HandleFunc("/api/products/with-stock", middleware.WithCORS(handlers.GetProductsWithStock))
 	mux.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("./assets"))))
+	mux.HandleFunc("/api/purchase", middleware.WithCORS(handlers.CreatePurchaseRequest))
+	mux.HandleFunc("/api/purchase-requests", middleware.WithCORS(handlers.GetAllPurchaseRequests))
+
+	mux.HandleFunc("/api/purchase-requests/", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost &&
+			(strings.HasSuffix(r.URL.Path, "/accept") || strings.HasSuffix(r.URL.Path, "/deny")) {
+			middleware.WithCORS(handlers.HandleRequestStatus)(w, r)
+			return
+		}
+		http.NotFound(w, r)
+	})
 
 	// mux.HandleFunc("/api/verify", middleware.WithCORS(handlers.VerifyHandler))
 
