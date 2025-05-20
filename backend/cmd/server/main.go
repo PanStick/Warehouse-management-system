@@ -43,6 +43,12 @@ func main() {
 			middleware.WithCORS(handlers.GetPurchaseRequestDetails)(w, r)
 			return
 		}
+
+		if r.Method == "GET" {
+			middleware.WithCORS(handlers.GetPurchaseRequestByID)(w, r)
+			return
+		}
+
 		http.NotFound(w, r)
 	})
 

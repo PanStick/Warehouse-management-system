@@ -118,6 +118,71 @@ func GetAllPurchaseRequests(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(allRequests)
 }
 
+// GET /api/purchase-requests/{id}
+func GetPurchaseRequestByID(w http.ResponseWriter, r *http.Request) {
+	idStr := strings.TrimPrefix(r.URL.Path, "/api/purchase-requests/")
+	idStr = strings.TrimSuffix(idStr, "/") // optional trailing slash
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid request ID", http.StatusBadRequest)
+		return
+	}
+
+	rows, err := db.DB.Query(`
+		SELECT r.id, r.userID, r.status, r.created_at, i.productID, i.quantity, p.productName
+		FROM purchase_requests r
+		JOIN purchase_items i ON r.id = i.requestID
+		JOIN products p ON i.productID = p.id
+		WHERE r.id = ?
+	`, id)
+	if err != nil {
+		http.Error(w, "Query error", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	type Item struct {
+		ProductID   int    `json:"productID"`
+		ProductName string `json:"productName"`
+		Quantity    int    `json:"quantity"`
+	}
+	type Request struct {
+		ID        int    `json:"id"`
+		UserID    int    `json:"userID"`
+		Status    string `json:"status"`
+		CreatedAt string `json:"created_at"`
+		Items     []Item `json:"items"`
+	}
+
+	var req *Request
+
+	for rows.Next() {
+		var rid, uid, pid, qty int
+		var status, createdAt, pname string
+		if err := rows.Scan(&rid, &uid, &status, &createdAt, &pid, &qty, &pname); err != nil {
+			http.Error(w, "Scan error", http.StatusInternalServerError)
+			return
+		}
+		if req == nil {
+			req = &Request{
+				ID:        rid,
+				UserID:    uid,
+				Status:    status,
+				CreatedAt: createdAt,
+			}
+		}
+		req.Items = append(req.Items, Item{ProductID: pid, ProductName: pname, Quantity: qty})
+	}
+
+	if req == nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(req)
+}
+
 // POST /api/purchase-requests/{id}/accept or /deny
 func HandleRequestStatus(w http.ResponseWriter, r *http.Request) {
 	id := strings.TrimPrefix(r.URL.Path, "/api/purchase-requests/")
