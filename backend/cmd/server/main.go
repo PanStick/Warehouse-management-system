@@ -28,11 +28,19 @@ func main() {
 	mux.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("./assets"))))
 	mux.HandleFunc("/api/purchase", middleware.WithCORS(handlers.CreatePurchaseRequest))
 	mux.HandleFunc("/api/purchase-requests", middleware.WithCORS(handlers.GetAllPurchaseRequests))
+	mux.HandleFunc("/api/products/", middleware.WithCORS(handlers.GetBatchesForProduct))
 
 	mux.HandleFunc("/api/purchase-requests/", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodPost &&
-			(strings.HasSuffix(r.URL.Path, "/accept") || strings.HasSuffix(r.URL.Path, "/deny")) {
+		if strings.HasSuffix(r.URL.Path, "/accept") || strings.HasSuffix(r.URL.Path, "/deny") {
 			middleware.WithCORS(handlers.HandleRequestStatus)(w, r)
+			return
+		}
+		if strings.HasSuffix(r.URL.Path, "/assign-batches") {
+			middleware.WithCORS(handlers.AssignBatches)(w, r)
+			return
+		}
+		if strings.HasSuffix(r.URL.Path, "/details") {
+			middleware.WithCORS(handlers.GetPurchaseRequestDetails)(w, r)
 			return
 		}
 		http.NotFound(w, r)

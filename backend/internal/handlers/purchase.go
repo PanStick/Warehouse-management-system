@@ -2,10 +2,13 @@ package handlers
 
 import (
 	"backend/internal/db"
+	"database/sql"
 	"encoding/json"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
+	"time"
 )
 
 // POST /api/purchase
@@ -121,6 +124,18 @@ func HandleRequestStatus(w http.ResponseWriter, r *http.Request) {
 	id = strings.TrimSuffix(id, "/accept")
 	id = strings.TrimSuffix(id, "/deny")
 	status := "accepted"
+	if strings.HasSuffix(r.URL.Path, "/accept") {
+		ok, err := validateFullAssignment(id)
+		if err != nil {
+			http.Error(w, "Failed to validate assignment", http.StatusInternalServerError)
+			return
+		}
+		if !ok {
+			http.Error(w, "Incomplete or invalid batch assignment", http.StatusBadRequest)
+			return
+		}
+
+	}
 	if strings.HasSuffix(r.URL.Path, "/deny") {
 		status = "denied"
 	}
@@ -131,4 +146,175 @@ func HandleRequestStatus(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Printf("Request %s marked as %s", id, status)
 	w.Write([]byte("OK"))
+}
+
+func validateFullAssignment(requestID string) (bool, error) {
+	query := `
+		SELECT pi.id, pi.quantity, IFNULL(SUM(ab.quantity), 0)
+		FROM purchase_items pi
+		LEFT JOIN assigned_batches ab ON ab.itemID = pi.id
+		WHERE pi.requestID = ?
+		GROUP BY pi.id
+	`
+	rows, err := db.DB.Query(query, requestID)
+	if err != nil {
+		return false, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var itemID int
+		var required, assigned float64
+		if err := rows.Scan(&itemID, &required, &assigned); err != nil {
+			return false, err
+		}
+		if assigned < required {
+			return false, nil // Not fully assigned
+		}
+	}
+	return true, nil
+}
+
+// GET /api/purchase-requests/{id}/details
+func GetPurchaseRequestDetails(w http.ResponseWriter, r *http.Request) {
+	idStr := strings.TrimPrefix(r.URL.Path, "/api/purchase-requests/")
+	idStr = strings.TrimSuffix(idStr, "/details")
+	requestID, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid request ID", http.StatusBadRequest)
+		return
+	}
+
+	type Batch struct {
+		BatchID        int     `json:"batchID"`
+		Quantity       float64 `json:"quantity"`
+		ExpirationDate *string `json:"expirationDate"`
+	}
+
+	type ItemDetail struct {
+		ItemID      int     `json:"itemID"`
+		ProductID   int     `json:"productID"`
+		ProductName string  `json:"productName"`
+		Quantity    float64 `json:"quantity"`
+		Batches     []Batch `json:"batches"`
+	}
+
+	var items []ItemDetail
+
+	itemRows, err := db.DB.Query(`
+		SELECT i.id, i.productID, p.productName, i.quantity
+		FROM purchase_items i
+		JOIN products p ON i.productID = p.id
+		WHERE i.requestID = ?
+	`, requestID)
+	if err != nil {
+		http.Error(w, "Failed to fetch items", http.StatusInternalServerError)
+		return
+	}
+	defer itemRows.Close()
+
+	for itemRows.Next() {
+		var item ItemDetail
+		err := itemRows.Scan(&item.ItemID, &item.ProductID, &item.ProductName, &item.Quantity)
+		if err != nil {
+			http.Error(w, "Failed to scan item", http.StatusInternalServerError)
+			return
+		}
+
+		batchRows, err := db.DB.Query(`
+			SELECT batchID, quantity, expirationDate
+			FROM stock
+			WHERE productID = ?
+			ORDER BY (expirationDate IS NULL), expirationDate
+		`, item.ProductID)
+		if err != nil {
+			http.Error(w, "Failed to fetch batches", http.StatusInternalServerError)
+			return
+		}
+		for batchRows.Next() {
+			var b Batch
+			var expRaw sql.NullString
+			if err := batchRows.Scan(&b.BatchID, &b.Quantity, &expRaw); err != nil {
+				log.Println("Failed to scan batch:", err)
+				http.Error(w, "Failed to scan batch", http.StatusInternalServerError)
+				return
+			}
+			if expRaw.Valid {
+				// Parse the string manually
+				t, err := time.Parse("2006-01-02", expRaw.String)
+				if err == nil {
+					str := t.Format("2006-01-02")
+					b.ExpirationDate = &str
+				}
+			}
+
+			item.Batches = append(item.Batches, b)
+		}
+
+		batchRows.Close()
+
+		items = append(items, item)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"items": items,
+	})
+}
+
+// POST /api/purchase-requests/{id}/assign-batches
+func AssignBatches(w http.ResponseWriter, r *http.Request) {
+	idStr := strings.TrimPrefix(r.URL.Path, "/api/purchase-requests/")
+	idStr = strings.TrimSuffix(idStr, "/assign-batches")
+
+	type BatchAssignment struct {
+		ItemID   int     `json:"itemID"`
+		BatchID  int     `json:"batchID"`
+		Quantity float64 `json:"quantity"`
+	}
+	var payload struct {
+		Batches []BatchAssignment `json:"batches"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		http.Error(w, "Invalid payload", http.StatusBadRequest)
+		return
+	}
+
+	tx, err := db.DB.Begin()
+	if err != nil {
+		http.Error(w, "Transaction error", http.StatusInternalServerError)
+		return
+	}
+	defer tx.Rollback()
+
+	// Clear previous assignments for the request
+	_, err = tx.Exec(`DELETE ab FROM assigned_batches ab
+		JOIN purchase_items pi ON ab.itemID = pi.id
+		WHERE pi.requestID = ?`, idStr)
+	if err != nil {
+		http.Error(w, "Failed to clear previous assignments", http.StatusInternalServerError)
+		return
+	}
+
+	for _, b := range payload.Batches {
+		_, err := tx.Exec(`INSERT INTO assigned_batches (itemID, batchID, quantity) VALUES (?, ?, ?)`,
+			b.ItemID, b.BatchID, b.Quantity)
+		if err != nil {
+			http.Error(w, "Failed to assign batch", http.StatusInternalServerError)
+			return
+		}
+		_, err = tx.Exec(`UPDATE stock SET quantity = quantity - ? WHERE batchID = ?`, b.Quantity, b.BatchID)
+		if err != nil {
+			http.Error(w, "Failed to update stock", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		http.Error(w, "Failed to commit assignments", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Assignments saved"))
 }

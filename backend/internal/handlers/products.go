@@ -49,6 +49,39 @@ func GetProductsWithStock(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(products)
 }
 
+// GET /api/products/{id}/batches
+func GetBatchesForProduct(w http.ResponseWriter, r *http.Request) {
+	idStr := strings.TrimPrefix(r.URL.Path, "/api/products/")
+	idStr = strings.TrimSuffix(idStr, "/batches")
+	id, _ := strconv.Atoi(idStr)
+
+	rows, err := db.DB.Query("SELECT batchID, quantity, expirationDate FROM stock WHERE productID = ? ORDER BY (expirationDate IS NULL), expirationDate", id)
+	if err != nil {
+		http.Error(w, "Failed to fetch batches", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var result []map[string]interface{}
+	for rows.Next() {
+		var batchID int
+		var qty float64
+		var exp sql.NullTime
+		_ = rows.Scan(&batchID, &qty, &exp)
+		item := map[string]interface{}{
+			"batchID":  batchID,
+			"quantity": qty,
+		}
+		if exp.Valid {
+			item["expirationDate"] = exp.Time.Format("2006-01-02")
+		}
+		result = append(result, item)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(result)
+}
+
 func GetProductImageHandler(w http.ResponseWriter, r *http.Request) {
 
 	// parts := strings.Split(r.URL.Path, "/")
