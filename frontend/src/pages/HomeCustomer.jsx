@@ -29,9 +29,9 @@ export default function HomeCustomer() {
         price: product.price,
         image: product.image,
         quantity: (storedCart[product.id]?.quantity || 0) + qty,
+        stock: product.quantity
       },
     };
-
     localStorage.setItem("cart", JSON.stringify(updatedCart));
     setQuantities((prev) => ({ ...prev, [product.id]: 0 }));
   };

@@ -1,7 +1,8 @@
 import {
     Table, TableBody, TableCell, TableContainer,
-    TableHead, TableRow, Paper, TextField, Button
+    TableHead, TableRow, Paper, Button
   } from "@mui/material";
+  import SmartQuantityInput from "./SmartQuantityInput"; // adjust path as needed
   
   export default function CartTable({ cart, onUpdate, onRemove }) {
     return (
@@ -21,11 +22,10 @@ import {
               <TableRow key={item.id}>
                 <TableCell>{item.name}</TableCell>
                 <TableCell>
-                  <TextField
-                    type="number"
+                  <SmartQuantityInput
                     value={item.quantity}
-                    onChange={(e) => onUpdate(item.id, e.target.value)}
-                    size="small"
+                    max={item.stock ?? 9999}
+                    onChange={(val) => onUpdate(item.id, val)}
                   />
                 </TableCell>
                 <TableCell>${item.price.toFixed(2)}</TableCell>

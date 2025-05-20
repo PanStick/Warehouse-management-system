@@ -1,7 +1,14 @@
 import {
-    Paper, Typography, Button, List, ListItem, ListItemText,
-    Collapse, Box, TextField
+    Paper,
+    Typography,
+    Button,
+    List,
+    ListItem,
+    ListItemText,
+    Collapse,
+    Box,
   } from "@mui/material";
+  import SmartQuantityInput from "./SmartQuantityInput";
   
   export default function RequestCard({
     request,
@@ -9,7 +16,9 @@ import {
     onToggle,
     assignedQuantities,
     onQuantityChange,
-    onAction
+    onAction,
+    assignmentError,
+    expandedId,
   }) {
     return (
       <Paper key={request.id} sx={{ p: 2, mb: 2 }}>
@@ -43,21 +52,11 @@ import {
                     <Typography>
                       Exp: {batch.expirationDate || "N/A"}, Stock: {batch.quantity}
                     </Typography>
-                    <TextField
-                      label="Qty to assign"
-                      type="number"
-                      size="small"
-                      inputProps={{ min: 0, max: batch.quantity }}
-                      value={
-                        assignedQuantities[item.itemID]?.[batch.batchID] ?? 0
-                      }
-                      onFocus={(e) => {
-                        if (e.target.value === "0") e.target.select();
-                      }}
-                      onChange={(e) => {
-                        const value = parseFloat(e.target.value || "0");
-                        onQuantityChange(item.itemID, batch.batchID, value);
-                      }}
+  
+                    <SmartQuantityInput
+                      value={assignedQuantities[item.itemID]?.[batch.batchID] ?? 0}
+                      max={batch.quantity}
+                      onChange={(val) => onQuantityChange(item.itemID, batch.batchID, val)}
                     />
                   </Box>
                 ))}
@@ -65,12 +64,26 @@ import {
             ))}
           </Box>
         </Collapse>
+        {assignmentError && expanded && request.id === expandedId && (
+          <Typography color="error" sx={{ mt: 1 }}>
+            {assignmentError}
+          </Typography>
+        )}
         {request.status === "pending" && (
           <Box sx={{ mt: 1 }}>
-            <Button onClick={() => onAction(request.id, "accept")} variant="contained" color="success" sx={{ mr: 1 }}>
+            <Button
+              onClick={() => onAction(request.id, "accept")}
+              variant="contained"
+              color="success"
+              sx={{ mr: 1 }}
+            >
               Accept
             </Button>
-            <Button onClick={() => onAction(request.id, "deny")} variant="contained" color="error">
+            <Button
+              onClick={() => onAction(request.id, "deny")}
+              variant="contained"
+              color="error"
+            >
               Deny
             </Button>
           </Box>

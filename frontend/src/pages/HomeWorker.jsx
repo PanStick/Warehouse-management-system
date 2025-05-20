@@ -29,7 +29,7 @@ export default function HomeWorker() {
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>Assigned Tasks</Typography>
-      {tasks.length === 0 ? (
+      {tasks == null || tasks.length === 0 ? (
         <Typography>No tasks assigned.</Typography>
       ) : (
         tasks.map((task) => (

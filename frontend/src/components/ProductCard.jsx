@@ -1,5 +1,6 @@
-import { Card, CardMedia, CardContent, Typography, TextField, Button } from "@mui/material";
+import { Card, CardMedia, CardContent, Typography, Button } from "@mui/material";
 import { cardStyles, cardMediaStyles } from "../styles/commonStyles";
+import SmartQuantityInput from "./SmartQuantityInput";
 
 export default function ProductCard({ product, quantity, onQuantityChange, onAddToCart }) {
   return (
@@ -16,19 +17,13 @@ export default function ProductCard({ product, quantity, onQuantityChange, onAdd
         </Typography>
         <Typography variant="body2">Price: ${product.price.toFixed(2)}</Typography>
         <Typography variant="body2">In stock: {product.quantity}</Typography>
-        <TextField
-          label="Qty"
-          type="number"
-          size="small"
-          inputProps={{ min: 0, max: product.quantity }}
-          value={quantity ?? 0}
-          onFocus={(e) => e.target.value === "0" && e.target.select()}
-          onChange={(e) => {
-            const val = parseInt(e.target.value || "0");
-            if (!isNaN(val)) onQuantityChange(Math.min(val, product.quantity));
-          }}
-          sx={{ mt: 1, width: 70 }}
+        
+        <SmartQuantityInput
+          value={quantity}
+          onChange={(val) => onQuantityChange(val)}
+          max={product.quantity}
         />
+
         <Button onClick={onAddToCart} sx={{ ml: 2, mt: 1 }}>
           Add to Cart
         </Button>
