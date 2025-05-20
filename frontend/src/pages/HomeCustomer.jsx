@@ -64,7 +64,7 @@ export default function HomeCustomer() {
           )
           .filter((product) => !showOnlyAvailable || product.quantity > 0)
           .map((product) => (
-            <Grid item xs={12} sm={6} md={4} lg={2.4} key={product.id}>
+            <Grid size={{xs:12, sm:6, md:4, lg:4 }} key={product.id}>
               <ProductCard
                 product={product}
                 quantity={quantities[product.id]}
