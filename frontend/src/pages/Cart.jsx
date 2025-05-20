@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from "react";
-import {
-  Box, Typography, Table, TableBody, TableCell, TableContainer,
-  TableHead, TableRow, Paper, TextField, Button
-} from "@mui/material";
+import { Box, Typography, Button } from "@mui/material";
+import CartTable from "../components/CartTable";
 
 export default function Cart() {
   const [cart, setCart] = useState({});
@@ -33,19 +31,13 @@ export default function Cart() {
       quantity: item.quantity,
     }));
 
-
     fetch("http://localhost:8080/api/purchase", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userID, items }),
     })
-      .then(async (res) => {
-        const text = await res.text();
-        console.log("Raw response from backend:", text); // 🔍
-        if (!res.ok) throw new Error(text);
-        return JSON.parse(text); // Only if it's JSON
-      })
-      .then(data => {
+      .then(res => res.json())
+      .then(() => {
         alert("Purchase submitted!");
         localStorage.removeItem("cart");
         setCart({});
@@ -54,7 +46,6 @@ export default function Cart() {
         console.error("Purchase error:", err);
         alert("Failed to submit purchase.");
       });
-    
   };
 
   return (
@@ -64,45 +55,9 @@ export default function Cart() {
         <Typography>Your cart is empty.</Typography>
       ) : (
         <>
-          <TableContainer component={Paper}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Product</TableCell>
-                  <TableCell>Quantity</TableCell>
-                  <TableCell>Price</TableCell>
-                  <TableCell>Total</TableCell>
-                  <TableCell>Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {Object.values(cart).map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell>{item.name}</TableCell>
-                    <TableCell>
-                      <TextField
-                        type="number"
-                        value={item.quantity}
-                        onChange={(e) => updateQuantity(item.id, e.target.value)}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>${item.price.toFixed(2)}</TableCell>
-                    <TableCell>${(item.price * item.quantity).toFixed(2)}</TableCell>
-                    <TableCell>
-                      <Button color="error" onClick={() => removeItem(item.id)}>
-                        Remove
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+          <CartTable cart={cart} onUpdate={updateQuantity} onRemove={removeItem} />
           <Box sx={{ mt: 2 }}>
-            <Button variant="contained" onClick={confirmPurchase}>
-              Confirm Purchase
-            </Button>
+            <Button variant="contained" onClick={confirmPurchase}>Confirm Purchase</Button>
           </Box>
         </>
       )}
