@@ -15,6 +15,7 @@ export default function HomeAdmin() {
   const [requests, setRequests] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
   const [assignments, setAssignments] = useState({});
+  const [assignedQuantities, setAssignedQuantities] = useState({});
 
   useEffect(() => {
     fetch("http://localhost:8080/api/purchase-requests")
@@ -154,15 +155,32 @@ export default function HomeAdmin() {
                               label="Qty to assign"
                               type="number"
                               size="small"
-                              value={batch.quantity}
-                              disabled={req.status !== "pending"}
-                              onChange={(e) =>
-                                handleAssignChange(
-                                  itemID,
-                                  batch.batchID,
-                                  e.target.value
-                                )
+                              inputProps={{ min: 0, max: batch.quantity }}
+                              value={
+                                assignedQuantities[itemID]?.[batch.batchID] !==
+                                undefined
+                                  ? assignedQuantities[itemID][batch.batchID]
+                                  : 0
                               }
+                              disabled={req.status !== "pending"}
+                              onFocus={(e) => {
+                                if (e.target.value === "0") {
+                                  e.target.select(); // selects the 0 so it gets replaced when typing
+                                }
+                              }}
+                              onChange={(e) => {
+                                const value = parseFloat(e.target.value || "0");
+                                setAssignedQuantities((prev) => ({
+                                  ...prev,
+                                  [itemID]: {
+                                    ...(prev[itemID] || {}),
+                                    [batch.batchID]:
+                                      value > batch.quantity
+                                        ? batch.quantity
+                                        : value,
+                                  },
+                                }));
+                              }}
                             />
                           </Box>
                         );

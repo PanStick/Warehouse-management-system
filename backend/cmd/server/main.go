@@ -46,6 +46,9 @@ func main() {
 		http.NotFound(w, r)
 	})
 
+	mux.HandleFunc("/api/worker/tasks", middleware.WithCORS(handlers.GetWorkerTasks))
+	mux.HandleFunc("/api/worker/tasks/", middleware.WithCORS(handlers.CompleteWorkerTask))
+
 	// mux.HandleFunc("/api/verify", middleware.WithCORS(handlers.VerifyHandler))
 
 	fs := http.FileServer(http.Dir("./frontend/build"))

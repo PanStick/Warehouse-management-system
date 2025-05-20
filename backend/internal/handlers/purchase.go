@@ -135,7 +135,22 @@ func HandleRequestStatus(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Ensure only one task per request
+		var exists int
+		err = db.DB.QueryRow(`SELECT COUNT(*) FROM tasks WHERE requestID = ?`, id).Scan(&exists)
+		if err != nil {
+			http.Error(w, "Failed to check existing task", http.StatusInternalServerError)
+			return
+		}
+		if exists == 0 {
+			_, err = db.DB.Exec(`INSERT INTO tasks (requestID, workerID) VALUES (?, ?)`, id, 1)
+			if err != nil {
+				http.Error(w, "Failed to assign task", http.StatusInternalServerError)
+				return
+			}
+		}
 	}
+
 	if strings.HasSuffix(r.URL.Path, "/deny") {
 		status = "denied"
 	}
