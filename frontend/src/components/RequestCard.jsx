@@ -14,7 +14,7 @@ import {
     return (
       <Paper key={request.id} sx={{ p: 2, mb: 2 }}>
         <Typography variant="subtitle1">
-          Request #{request.id} - User: {request.userID} - Status: {request.status}
+          Request #{request.id} - User: {request.email} - Status: {request.status}
         </Typography>
         <List dense>
           {request.items.map((item) => (

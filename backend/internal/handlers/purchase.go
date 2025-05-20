@@ -67,8 +67,9 @@ func CreatePurchaseRequest(w http.ResponseWriter, r *http.Request) {
 // GET /api/purchase-requests
 func GetAllPurchaseRequests(w http.ResponseWriter, r *http.Request) {
 	rows, err := db.DB.Query(`
-		SELECT r.id, r.userID, r.status, r.created_at, i.productID, i.quantity, p.productName
+		SELECT r.id, r.userID, u.email, r.status, r.created_at, i.productID, i.quantity, p.productName
 		FROM purchase_requests r
+		JOIN users u ON r.userID = u.id
 		JOIN purchase_items i ON r.id = i.requestID
 		JOIN products p ON i.productID = p.id
 		ORDER BY r.id DESC
@@ -87,6 +88,7 @@ func GetAllPurchaseRequests(w http.ResponseWriter, r *http.Request) {
 	type Request struct {
 		ID        int    `json:"id"`
 		UserID    int    `json:"userID"`
+		Email     string `json:"email"`
 		Status    string `json:"status"`
 		CreatedAt string `json:"created_at"`
 		Items     []Item `json:"items"`
@@ -96,14 +98,14 @@ func GetAllPurchaseRequests(w http.ResponseWriter, r *http.Request) {
 
 	for rows.Next() {
 		var rid, uid, pid, qty int
-		var status, createdAt, pname string
-		if err := rows.Scan(&rid, &uid, &status, &createdAt, &pid, &qty, &pname); err != nil {
+		var email, status, createdAt, pname string
+		if err := rows.Scan(&rid, &uid, &email, &status, &createdAt, &pid, &qty, &pname); err != nil {
 			http.Error(w, "Scan error", http.StatusInternalServerError)
 			return
 		}
 		req, exists := requestsMap[rid]
 		if !exists {
-			req = &Request{ID: rid, UserID: uid, Status: status, CreatedAt: createdAt}
+			req = &Request{ID: rid, UserID: uid, Email: email, Status: status, CreatedAt: createdAt}
 			requestsMap[rid] = req
 		}
 		req.Items = append(req.Items, Item{ProductID: pid, ProductName: pname, Quantity: qty})
