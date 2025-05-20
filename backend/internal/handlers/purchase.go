@@ -250,7 +250,7 @@ func validateFullAssignment(requestID string) (bool, error) {
 		if err := rows.Scan(&itemID, &required, &assigned); err != nil {
 			return false, err
 		}
-		if assigned < required {
+		if assigned != required {
 			return false, nil // Not fully assigned
 		}
 	}
