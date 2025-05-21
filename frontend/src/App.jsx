@@ -16,6 +16,7 @@ import AdminLayout from "./layouts/AdminLayout";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminReports from "./pages/AdminReports";
 import AdminPanel from "./pages/AdminPanel";
+import OrderHistory from "./pages/OrderHistory";
 
 function AppContent() {
   const { role } = useAuth();
@@ -66,6 +67,16 @@ function AppContent() {
           path="/cart"
           element={
             hasAccess(role, ["customer"]) ? <Cart /> : <Navigate to="/" />
+          }
+        />
+        <Route
+          path="/order-history"
+          element={
+            hasAccess(role, ["customer", "demo"]) ? (
+              <OrderHistory />
+            ) : (
+              <Navigate to="/" replace />
+            )
           }
         />
       </Routes>

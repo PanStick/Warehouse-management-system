@@ -144,6 +144,15 @@ const TopBar = () => {
                   )}
                   onClose={handleCloseUserMenu}
                 >
+                  {(role === "customer" || role === "demo") && (
+                    <MenuItem
+                      onClick={() => {
+                        handlePageNavigate("/order-history");
+                      }}
+                    >
+                      <Typography textAlign="center">Order History</Typography>
+                    </MenuItem>
+                  )}
                   <MenuItem onClick={handleLogout}>
                     <Typography textAlign="center">Logout</Typography>
                   </MenuItem>

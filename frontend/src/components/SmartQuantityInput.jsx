@@ -7,7 +7,7 @@ export default function SmartQuantityInput({
   max = Infinity,
   min = 0,
   disabled = false,
-  width = 70,
+  width = 100,
 }) {
   return (
     <TextField

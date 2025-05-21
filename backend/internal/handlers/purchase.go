@@ -120,6 +120,83 @@ func GetAllPurchaseRequests(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(allRequests)
 }
 
+// GET /api/purchase-requests/user/{userID}
+func GetPurchaseRequestsByUser(w http.ResponseWriter, r *http.Request) {
+	// Extract the userID from the URL
+	// e.g. URL.Path = "/api/purchase-requests/user/42"
+	parts := strings.Split(r.URL.Path, "/")
+	if len(parts) < 4 {
+		http.Error(w, "User ID missing", http.StatusBadRequest)
+		return
+	}
+	userID := parts[len(parts)-1]
+
+	rows, err := db.DB.Query(`
+        SELECT r.id, r.userID, u.email, r.status, r.created_at,
+               i.productID, i.quantity, p.productName
+        FROM purchase_requests r
+        JOIN users u ON r.userID = u.id
+        JOIN purchase_items i ON r.id = i.requestID
+        JOIN products p ON i.productID = p.id
+        WHERE r.userID = ?
+        ORDER BY r.id DESC
+    `, userID)
+	if err != nil {
+		http.Error(w, "Query error", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	type Item struct {
+		ProductID   int    `json:"productID"`
+		ProductName string `json:"productName"`
+		Quantity    int    `json:"quantity"`
+	}
+	type Request struct {
+		ID        int    `json:"id"`
+		UserID    int    `json:"userID"`
+		Email     string `json:"email"`
+		Status    string `json:"status"`
+		CreatedAt string `json:"created_at"`
+		Items     []Item `json:"items"`
+	}
+
+	requestsMap := make(map[int]*Request)
+
+	for rows.Next() {
+		var rid, uid, pid, qty int
+		var email, status, createdAt, pname string
+		if err := rows.Scan(&rid, &uid, &email, &status, &createdAt, &pid, &qty, &pname); err != nil {
+			http.Error(w, "Scan error", http.StatusInternalServerError)
+			return
+		}
+		req, exists := requestsMap[rid]
+		if !exists {
+			req = &Request{
+				ID:        rid,
+				UserID:    uid,
+				Email:     email,
+				Status:    status,
+				CreatedAt: createdAt,
+			}
+			requestsMap[rid] = req
+		}
+		req.Items = append(req.Items, Item{
+			ProductID:   pid,
+			ProductName: pname,
+			Quantity:    qty,
+		})
+	}
+
+	var userRequests []Request
+	for _, req := range requestsMap {
+		userRequests = append(userRequests, *req)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(userRequests)
+}
+
 // GET /api/purchase-requests/{id}
 func GetPurchaseRequestByID(w http.ResponseWriter, r *http.Request) {
 	idStr := strings.TrimPrefix(r.URL.Path, "/api/purchase-requests/")
