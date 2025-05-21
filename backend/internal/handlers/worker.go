@@ -82,12 +82,41 @@ func CompleteWorkerTask(w http.ResponseWriter, r *http.Request) {
 	taskIdStr := strings.TrimPrefix(r.URL.Path, "/api/worker/tasks/")
 	taskIdStr = strings.TrimSuffix(taskIdStr, "/complete")
 
-	_, err := db.DB.Exec(`UPDATE tasks SET status = 'completed' WHERE id = ?`, taskIdStr)
+	tx, err := db.DB.Begin()
 	if err != nil {
+		http.Error(w, "Failed to begin transaction", http.StatusInternalServerError)
+		return
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.Exec(
+		`UPDATE tasks SET status = 'completed' WHERE id = ?`, taskIdStr,
+	); err != nil {
 		http.Error(w, "Failed to update task status", http.StatusInternalServerError)
 		return
 	}
 
-	log.Printf("Task %s marked as completed", taskIdStr)
+	var requestID int
+	err = tx.QueryRow(
+		`SELECT requestID FROM tasks WHERE id = ?`, taskIdStr,
+	).Scan(&requestID)
+	if err != nil {
+		http.Error(w, "Failed to find associated request", http.StatusInternalServerError)
+		return
+	}
+
+	if _, err := tx.Exec(
+		`UPDATE purchase_requests SET status = 'shipped' WHERE id = ?`, requestID,
+	); err != nil {
+		http.Error(w, "Failed to update request status", http.StatusInternalServerError)
+		return
+	}
+
+	if err := tx.Commit(); err != nil {
+		http.Error(w, "Failed to commit transaction", http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("Task %s marked as completed and request %d set to shipped", taskIdStr, requestID)
 	w.Write([]byte("OK"))
 }

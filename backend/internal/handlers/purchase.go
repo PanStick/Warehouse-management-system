@@ -122,8 +122,7 @@ func GetAllPurchaseRequests(w http.ResponseWriter, r *http.Request) {
 
 // GET /api/purchase-requests/user/{userID}
 func GetPurchaseRequestsByUser(w http.ResponseWriter, r *http.Request) {
-	// Extract the userID from the URL
-	// e.g. URL.Path = "/api/purchase-requests/user/42"
+
 	parts := strings.Split(r.URL.Path, "/")
 	if len(parts) < 4 {
 		http.Error(w, "User ID missing", http.StatusBadRequest)
@@ -279,7 +278,6 @@ func HandleRequestStatus(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Ensure only one task per request
 		var exists int
 		err = db.DB.QueryRow(`SELECT COUNT(*) FROM tasks WHERE requestID = ?`, id).Scan(&exists)
 		if err != nil {
