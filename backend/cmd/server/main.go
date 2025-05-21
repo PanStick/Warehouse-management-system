@@ -30,6 +30,7 @@ func main() {
 	mux.HandleFunc("/api/purchase-requests", middleware.WithCORS(handlers.GetAllPurchaseRequests))
 	mux.HandleFunc("/api/products/", middleware.WithCORS(handlers.GetBatchesForProduct))
 	mux.HandleFunc("/api/purchase-requests/user/", middleware.WithCORS(handlers.GetPurchaseRequestsByUser))
+	mux.HandleFunc("/api/products", middleware.WithCORS(handlers.GetProductsBySupplier))
 
 	mux.HandleFunc("/api/purchase-requests/", func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasSuffix(r.URL.Path, "/accept") || strings.HasSuffix(r.URL.Path, "/deny") {
@@ -55,6 +56,19 @@ func main() {
 
 	mux.HandleFunc("/api/worker/tasks", middleware.WithCORS(handlers.GetWorkerTasks))
 	mux.HandleFunc("/api/worker/tasks/", middleware.WithCORS(handlers.CompleteWorkerTask))
+
+	mux.HandleFunc("/api/ordered-products", middleware.WithCORS(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			handlers.GetAllOrderedProducts(w, r)
+		case http.MethodPost:
+			handlers.CreateOrderedProduct(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+
+	mux.HandleFunc("/api/suppliers", middleware.WithCORS(handlers.GetSuppliers))
 
 	// mux.HandleFunc("/api/verify", middleware.WithCORS(handlers.VerifyHandler))
 

@@ -13,7 +13,6 @@ import (
 )
 
 // GET /api/products/with-stock
-
 func GetProductsWithStock(w http.ResponseWriter, r *http.Request) {
 	type ProductWithStock struct {
 		ID       int     `json:"id"`
@@ -39,6 +38,53 @@ func GetProductsWithStock(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var p ProductWithStock
 		if err := rows.Scan(&p.ID, &p.Name, &p.Image, &p.Price, &p.Quantity); err != nil {
+			http.Error(w, "Scan error", http.StatusInternalServerError)
+			return
+		}
+		products = append(products, p)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(products)
+}
+
+// GET /api/products?supplierId={id}
+func GetProductsBySupplier(w http.ResponseWriter, r *http.Request) {
+	supplierIDStr := r.URL.Query().Get("supplierId")
+	if supplierIDStr == "" {
+		http.Error(w, "Missing supplierId parameter", http.StatusBadRequest)
+		return
+	}
+	supplierID, err := strconv.Atoi(supplierIDStr)
+	if err != nil {
+		http.Error(w, "Invalid supplierId", http.StatusBadRequest)
+		return
+	}
+
+	type Product struct {
+		ID          int     `json:"id"`
+		ProductName string  `json:"productName"`
+		UnitType    string  `json:"unitType"`
+		Image       string  `json:"image"`
+		Price       float64 `json:"price"`
+	}
+
+	rows, err := db.DB.Query(`
+        SELECT id, productName, unitType, image, price
+        FROM products
+        WHERE supplierID = ?
+        ORDER BY productName
+    `, supplierID)
+	if err != nil {
+		http.Error(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var products []Product
+	for rows.Next() {
+		var p Product
+		if err := rows.Scan(&p.ID, &p.ProductName, &p.UnitType, &p.Image, &p.Price); err != nil {
 			http.Error(w, "Scan error", http.StatusInternalServerError)
 			return
 		}
