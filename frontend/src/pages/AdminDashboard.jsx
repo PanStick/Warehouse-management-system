@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Box, Typography } from "@mui/material";
 import RequestCard from "../components/RequestCard";
 
-export default function HomeAdmin() {
+export default function AdminDashboard() {
   const [requests, setRequests] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
   const [assignedQuantities, setAssignedQuantities] = useState({});
@@ -11,7 +11,7 @@ export default function HomeAdmin() {
   useEffect(() => {
     fetch("http://localhost:8080/api/purchase-requests")
       .then((res) => res.json())
-      .then((data) => setRequests(data))
+      .then((data) => setRequests(Array.isArray(data) ? data : []))
       .catch((err) => console.error("Failed to fetch requests:", err));
   }, []);
 
@@ -29,22 +29,21 @@ export default function HomeAdmin() {
 
   const preloadAssignmentsIfNeeded = async (id, items) => {
     const newAssigned = {};
-  
+
     items.forEach((item) => {
       let remainingQty = item.quantity;
       newAssigned[item.itemID] = {};
-  
+
       item.batches.forEach((batch) => {
         const assignQty = Math.min(batch.quantity, remainingQty);
         newAssigned[item.itemID][batch.batchID] = assignQty;
         remainingQty -= assignQty;
       });
     });
-  
+
     setAssignedQuantities(newAssigned);
     return newAssigned;
   };
-  
 
   const handleAction = async (id, action) => {
     const request = requests.find((r) => r.id === id);

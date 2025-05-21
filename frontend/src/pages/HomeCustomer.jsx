@@ -29,7 +29,7 @@ export default function HomeCustomer() {
         price: product.price,
         image: product.image,
         quantity: (storedCart[product.id]?.quantity || 0) + qty,
-        stock: product.quantity
+        stock: product.quantity,
       },
     };
     localStorage.setItem("cart", JSON.stringify(updatedCart));
@@ -38,7 +38,9 @@ export default function HomeCustomer() {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>Products</Typography>
+      <Typography variant="h4" gutterBottom>
+        Products
+      </Typography>
       <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3 }}>
         <TextField
           label="Filter by name"
@@ -64,11 +66,13 @@ export default function HomeCustomer() {
           )
           .filter((product) => !showOnlyAvailable || product.quantity > 0)
           .map((product) => (
-            <Grid size={{xs:12, sm:6, md:4, lg:4 }} key={product.id}>
+            <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2.4 }} key={product.id}>
               <ProductCard
                 product={product}
                 quantity={quantities[product.id]}
-                onQuantityChange={(val) => setQuantities(prev => ({ ...prev, [product.id]: val }))}
+                onQuantityChange={(val) =>
+                  setQuantities((prev) => ({ ...prev, [product.id]: val }))
+                }
                 onAddToCart={() => handleAddToCart(product)}
               />
             </Grid>

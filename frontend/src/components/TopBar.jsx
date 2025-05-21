@@ -1,22 +1,31 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
-  AppBar, Box, Toolbar, IconButton, Typography, Menu,
-  Container, Button, Tooltip, MenuItem, Badge
-} from '@mui/material';
-import MenuIcon from '@mui/icons-material/Menu';
-import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
-import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+  AppBar,
+  Box,
+  Toolbar,
+  IconButton,
+  Typography,
+  Menu,
+  Container,
+  Button,
+  Tooltip,
+  MenuItem,
+  Badge,
+} from "@mui/material";
+import MenuIcon from "@mui/icons-material/Menu";
+import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
+import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const rolePages = {
-  customer: [{ label: 'Customer Home', path: '/customer-home' }],
-  worker: [{ label: 'Worker Home', path: '/worker-home' }],
-  admin: [{ label: 'Admin Home', path: '/admin-home' }],
+  customer: [{ label: "Customer Home", path: "/customer-home" }],
+  worker: [{ label: "Worker Home", path: "/worker-home" }],
+  admin: [{ label: "Admin Home", path: "/admin" }],
   demo: [
-    { label: 'Customer Home', path: '/customer-home' },
-    { label: 'Worker Home', path: '/worker-home' },
-    { label: 'Admin Home', path: '/admin-home' }
-  ]
+    { label: "Customer Home", path: "/customer-home" },
+    { label: "Worker Home", path: "/worker-home" },
+    { label: "Admin Home", path: "/admin" },
+  ],
 };
 
 const TopBar = () => {
@@ -26,13 +35,12 @@ const TopBar = () => {
 
   const { role, setRole } = useAuth();
   const loggedIn = !!role;
-  const pages = role ? (rolePages[role] || []) : [{label: "home", path: "/"}];
+  const pages = role ? rolePages[role] || [] : [{ label: "home", path: "/" }];
 
   const handleOpenNavMenu = (event) => setAnchorElNav(event.currentTarget);
   const handleOpenUserMenu = (event) => setAnchorElUser(event.currentTarget);
   const handleCloseNavMenu = () => setAnchorElNav(null);
   const handleCloseUserMenu = () => setAnchorElUser(null);
-
 
   useEffect(() => {
     setAnchorElNav(null);
@@ -44,7 +52,7 @@ const TopBar = () => {
     localStorage.removeItem("role");
     localStorage.removeItem("userId");
     localStorage.removeItem("email");
-    navigate('/');
+    navigate("/");
   };
 
   const handlePageNavigate = (path) => {
@@ -54,24 +62,34 @@ const TopBar = () => {
   };
 
   return (
-    <AppBar position="static">
+    <AppBar
+      position="fixed"
+      sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}
+    >
+      {" "}
       <Container maxWidth="xl">
         <Toolbar disableGutters>
-
           {/* Mobile menu */}
-          <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'none' } }}>
-            <IconButton size="large" onClick={handleOpenNavMenu} color="inherit">
+          <Box sx={{ flexGrow: 1, display: { xs: "flex", md: "none" } }}>
+            <IconButton
+              size="large"
+              onClick={handleOpenNavMenu}
+              color="inherit"
+            >
               <MenuIcon />
             </IconButton>
             <Menu
               anchorEl={anchorElNav}
               open={Boolean(anchorElNav && anchorElNav instanceof Element)}
               onClose={handleCloseNavMenu}
-              anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-              transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+              anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+              transformOrigin={{ vertical: "top", horizontal: "left" }}
             >
               {pages.map((page) => (
-                <MenuItem key={page.label} onClick={() => handlePageNavigate(page.path)}>
+                <MenuItem
+                  key={page.label}
+                  onClick={() => handlePageNavigate(page.path)}
+                >
                   <Typography textAlign="center">{page.label}</Typography>
                 </MenuItem>
               ))}
@@ -79,20 +97,20 @@ const TopBar = () => {
           </Box>
 
           {/* Desktop menu */}
-          <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' } }}>
+          <Box sx={{ flexGrow: 1, display: { xs: "none", md: "flex" } }}>
             {pages.map((page) => (
               <Button
                 key={page.label}
                 onClick={() => handlePageNavigate(page.path)}
-                sx={{ my: 2, color: 'white' }}
+                sx={{ my: 2, color: "white" }}
               >
                 {page.label}
               </Button>
             ))}
           </Box>
 
-          {role === 'customer' || role === 'demo' ? (
-            <IconButton color="inherit" onClick={() => navigate('/cart')}>
+          {role === "customer" || role === "demo" ? (
+            <IconButton color="inherit" onClick={() => navigate("/cart")}>
               <Badge color="secondary">
                 <ShoppingCartIcon />
               </Badge>
@@ -103,23 +121,27 @@ const TopBar = () => {
           <Box sx={{ flexGrow: 0 }}>
             {!loggedIn ? (
               <>
-                <Button color="inherit" onClick={() => navigate('/login')}>
+                <Button color="inherit" onClick={() => navigate("/login")}>
                   Login
                 </Button>
-                <Button color="inherit" onClick={() => navigate('/register')}>
+                <Button color="inherit" onClick={() => navigate("/register")}>
                   Register
                 </Button>
               </>
             ) : (
               <>
                 <Tooltip title="Open settings">
-                  <Button onClick={handleOpenUserMenu} sx={{ color: 'white' }}>
+                  <Button onClick={handleOpenUserMenu} sx={{ color: "white" }}>
                     My Account
                   </Button>
                 </Tooltip>
                 <Menu
                   anchorEl={anchorElUser}
-                  open={Boolean(anchorElUser && anchorElUser instanceof Element && document.body.contains(anchorElUser))}
+                  open={Boolean(
+                    anchorElUser &&
+                      anchorElUser instanceof Element &&
+                      document.body.contains(anchorElUser)
+                  )}
                   onClose={handleCloseUserMenu}
                 >
                   <MenuItem onClick={handleLogout}>
@@ -129,7 +151,6 @@ const TopBar = () => {
               </>
             )}
           </Box>
-
         </Toolbar>
       </Container>
     </AppBar>
