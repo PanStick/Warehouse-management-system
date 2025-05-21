@@ -10,7 +10,7 @@ import (
 
 // GET /api/worker/tasks
 func GetWorkerTasks(w http.ResponseWriter, r *http.Request) {
-	workerID := 1 //hardcoded for now
+	workerID := 1 // hardcoded for now
 
 	type TaskItem struct {
 		ProductName string  `json:"productName"`
@@ -20,45 +20,56 @@ func GetWorkerTasks(w http.ResponseWriter, r *http.Request) {
 
 	type Task struct {
 		TaskID int        `json:"taskId"`
+		Type   string     `json:"type"`
 		Items  []TaskItem `json:"items"`
 	}
 
 	rows, err := db.DB.Query(`
-		SELECT 
-			t.id AS taskId,
-			p.productName,
-			ab.batchID,
-			ab.quantity
-		FROM tasks t
-		JOIN purchase_requests pr ON pr.id = t.requestID
-		JOIN purchase_items pi ON pi.requestID = pr.id
-		JOIN assigned_batches ab ON ab.itemID = pi.id
-		JOIN stock s ON s.batchID = ab.batchID
-		JOIN products p ON p.id = s.productID
-		WHERE 
-			t.workerID = ?
-			AND t.status = 'pending'
-			AND ab.quantity > 0
-		ORDER BY t.id`, workerID)
+        SELECT 
+            t.id AS taskId,
+            t.type AS taskType,
+            p.productName,
+            ab.batchID,
+            ab.quantity
+        FROM tasks t
+        JOIN purchase_requests pr ON pr.id = t.requestID
+        JOIN purchase_items pi ON pi.requestID = pr.id
+        JOIN assigned_batches ab ON ab.itemID = pi.id
+        JOIN stock s ON s.batchID = ab.batchID
+        JOIN products p ON p.id = s.productID
+        WHERE 
+            t.workerID = ?
+            AND t.status = 'pending'
+            AND ab.quantity > 0
+        ORDER BY t.id
+    `, workerID)
 	if err != nil {
 		http.Error(w, "DB error", http.StatusInternalServerError)
 		return
 	}
 	defer rows.Close()
 
-	tasksMap := make(map[int][]TaskItem)
+	// Map of taskID to its type + items
+	type taskAccumulator struct {
+		taskType string
+		items    []TaskItem
+	}
+	accum := make(map[int]*taskAccumulator)
 
 	for rows.Next() {
 		var taskID, batchID int
-		var productName string
+		var taskType, productName string
 		var quantity float64
 
-		if err := rows.Scan(&taskID, &productName, &batchID, &quantity); err != nil {
+		if err := rows.Scan(&taskID, &taskType, &productName, &batchID, &quantity); err != nil {
 			http.Error(w, "Row scan error", http.StatusInternalServerError)
 			return
 		}
 
-		tasksMap[taskID] = append(tasksMap[taskID], TaskItem{
+		if _, exists := accum[taskID]; !exists {
+			accum[taskID] = &taskAccumulator{taskType: taskType}
+		}
+		accum[taskID].items = append(accum[taskID].items, TaskItem{
 			ProductName: productName,
 			BatchID:     batchID,
 			Quantity:    quantity,
@@ -66,10 +77,11 @@ func GetWorkerTasks(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var tasks []Task
-	for id, items := range tasksMap {
+	for id, acc := range accum {
 		tasks = append(tasks, Task{
 			TaskID: id,
-			Items:  items,
+			Type:   acc.taskType,
+			Items:  acc.items,
 		})
 	}
 

@@ -1,8 +1,19 @@
-import { Paper, List, ListItem, ListItemText, Button } from "@mui/material";
+import {
+  Paper,
+  List,
+  ListItem,
+  ListItemText,
+  Button,
+  Typography,
+  Box,
+} from "@mui/material";
 
 export default function TaskCard({ task, onComplete }) {
   return (
     <Paper key={task.taskId} sx={{ p: 2, mb: 2 }}>
+      <Box sx={{ mb: 1 }}>
+        <Typography variant="subtitle1">Task Type: {task.type}</Typography>
+      </Box>
       <List dense>
         {task.items.map((item) => (
           <ListItem key={`${task.taskId}-${item.batchId}`}>
@@ -13,7 +24,11 @@ export default function TaskCard({ task, onComplete }) {
           </ListItem>
         ))}
       </List>
-      <Button variant="contained" color="primary" onClick={() => onComplete(task.taskId)}>
+      <Button
+        variant="contained"
+        color="primary"
+        onClick={() => onComplete(task.taskId)}
+      >
         Finish Task
       </Button>
     </Paper>

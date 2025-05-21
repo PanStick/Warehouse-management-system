@@ -285,7 +285,7 @@ func HandleRequestStatus(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if exists == 0 {
-			_, err = db.DB.Exec(`INSERT INTO tasks (requestID, workerID) VALUES (?, ?)`, id, 1)
+			_, err = db.DB.Exec(`INSERT INTO tasks (requestID, workerID, type) VALUES (?, ?, ?)`, id, 1, "prepare")
 			if err != nil {
 				http.Error(w, "Failed to assign task", http.StatusInternalServerError)
 				return
