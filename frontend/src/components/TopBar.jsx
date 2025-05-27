@@ -153,6 +153,15 @@ const TopBar = () => {
                       <Typography textAlign="center">Order History</Typography>
                     </MenuItem>
                   )}
+                                    {(role === "worker" || role === "demo") && (
+                    <MenuItem
+                      onClick={() => {
+                        handlePageNavigate("/rapport-history");
+                      }}
+                    >
+                      <Typography textAlign="center">Rapport History</Typography>
+                    </MenuItem>
+                  )}
                   <MenuItem onClick={handleLogout}>
                     <Typography textAlign="center">Logout</Typography>
                   </MenuItem>

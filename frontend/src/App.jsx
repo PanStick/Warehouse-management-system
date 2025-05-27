@@ -17,6 +17,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminReports from "./pages/AdminReports";
 import AdminPanel from "./pages/AdminPanel";
 import OrderHistory from "./pages/OrderHistory";
+import RapportHistory from "./pages/RapportHistory";
 
 function AppContent() {
   const { role } = useAuth();
@@ -74,6 +75,16 @@ function AppContent() {
           element={
             hasAccess(role, ["customer", "demo"]) ? (
               <OrderHistory />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+        <Route
+          path="/rapport-history"
+          element={
+            hasAccess(role, ["worker", "demo"]) ? (
+              <RapportHistory />
             ) : (
               <Navigate to="/" replace />
             )
