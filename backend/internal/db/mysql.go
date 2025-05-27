@@ -17,7 +17,7 @@ func InitDB() {
 	pass := getEnv("DB_PASSWORD", "password")
 	host := getEnv("DB_HOST", "localhost")
 	name := getEnv("DB_NAME", "auth_demo")
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:3306)/%s", user, pass, host, name)
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:3306)/%s?parseTime=true&loc=Local", user, pass, host, name)
 
 	var err error
 	DB, err = sql.Open("mysql", dsn)
