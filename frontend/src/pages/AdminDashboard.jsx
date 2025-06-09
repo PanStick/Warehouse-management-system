@@ -47,7 +47,26 @@ export default function AdminDashboard() {
 
   const handleAction = async (id, action) => {
     const request = requests.find((r) => r.id === id);
+
+    if (!request.details) {
+      await fetchDetails(id);
+    }
+
     let currentAssigned = assignedQuantities;
+
+    for (let item of request.details) {
+      const assignedForItem = Object.entries(
+        currentAssigned[item.itemID] || {}
+      ).reduce((sum, [batchID, qty]) => sum + qty, 0);
+      if (action === "accept" && assignedForItem !== item.quantity) {
+        setAssignmentError(
+          `Incorrect assignment for "${item.productName}". ` +
+            `Needed ${item.quantity}, but assigned ${assignedForItem}.`
+        );
+        return;
+      }
+    }
+    setAssignmentError(null);
 
     if (
       action === "accept" &&
@@ -77,7 +96,7 @@ export default function AdminDashboard() {
 
       try {
         const assignRes = await fetch(
-          `http://localhost:8080/api/purchase-requests/${id}/assign-batches`,
+          `/api/purchase-requests/${id}/assign-batches`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },

@@ -11,35 +11,49 @@ import {
 
 export default function AdminReports() {
   const [reports, setReports] = useState([]);
+  const [deliveries, setDeliveries] = useState([]);
   const [respDialog, setRespDialog] = useState({
     open: false,
     id: null,
     text: "",
   });
 
+  useEffect(() => {
+    fetch("/api/ordered-products")
+      .then((res) => res.json())
+      .then((data) => setDeliveries(Array.isArray(data) ? data : []))
+      .catch((err) => {
+        console.error("Error fetching deliveries:", err);
+        setDeliveries([]);
+      });
+  }, []);
+
   // fetch all rapports on mount
   useEffect(() => {
     async function loadReports() {
       try {
-        const res = await fetch("http://localhost:8080/api/rapports");
+        const res = await fetch("/api/rapports");
         if (!res.ok) throw new Error("Failed to load reports");
         const data = await res.json();
-        setReports(data);
+        Array.isArray(data) ? setReports(data) : setReports([]);
       } catch (err) {
         console.error("Error fetching rapports:", err);
       }
     }
 
     loadReports();
-  }, []); 
+  }, []);
 
   const updateStatus = async (id, status) => {
     try {
-      const res = await fetch(`http://localhost:8080/api/rapports/${id}/status`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      });
+      const res = await fetch(
+        `http://localhost:8080/api/rapports/${id}/status`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status }),
+        }
+      );
       if (!res.ok) throw new Error(await res.text());
       // update local state
       setReports((prev) =>
@@ -57,11 +71,14 @@ export default function AdminReports() {
   const sendResponse = async () => {
     try {
       const { id, text } = respDialog;
-      const res = await fetch(`http://localhost:8080/api/rapports/${id}/respond`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ response: text }),
-      });
+      const res = await fetch(
+        `http://localhost:8080/api/rapports/${id}/respond`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ response: text }),
+        }
+      );
       if (!res.ok) throw new Error(await res.text());
       setReports((prev) =>
         prev.map((r) =>
@@ -82,39 +99,57 @@ export default function AdminReports() {
       </Typography>
 
       <List>
-        {reports.map((r) => (
-          <Paper key={r.id} sx={{ p: 2, mb: 2 }}>
-            <Typography variant="subtitle1">
-              [{r.type.toUpperCase()}] {r.content || "(no content)"}
-            </Typography>
-            <Typography>Status: {r.status}</Typography>
-            {r.response && (
-              <Typography color="text.secondary">
-                Response: {r.response}
+        {reports.map((r) => {
+          // for delivery rapports, look up the order in `deliveries`
+          let deliveryInfo = null;
+          if (r.type === "delivery" && r.content) {
+            const orderId = parseInt(r.content, 10);
+            deliveryInfo = deliveries.find((d) => d.id === orderId) || null;
+          }
+          return (
+            <Paper key={r.id} sx={{ p: 2, mb: 2 }}>
+              <Typography variant="subtitle1">
+                {r.type === "text"
+                  ? `[Text] ${r.content}`
+                  : deliveryInfo
+                  ? // show actual delivered product
+                    `Delivery for ${deliveryInfo.productName} x${deliveryInfo.quantity}` +
+                    (deliveryInfo.expirationDate
+                      ? ` (exp ${deliveryInfo.expirationDate})`
+                      : "")
+                  : // fallback if not yet loaded
+                    `Delivery rapport for order #${r.content}`}{" "}
               </Typography>
-            )}
-            <Box sx={{ mt: 1 }}>
-              <Button
-                onClick={() => updateStatus(r.id, "accepted")}
-                disabled={r.status !== "pending"}
-                sx={{ mr: 1 }}
-              >
-                Accept
-              </Button>
-              <Button
-                onClick={() => updateStatus(r.id, "denied")}
-                disabled={r.status !== "pending"}
-                sx={{ mr: 1 }}
-              >
-                Deny
-              </Button>
-              <Button onClick={() => openRespond(r)}>Respond</Button>
-            </Box>
-          </Paper>
-        ))}
+              <Typography>Status: {r.status}</Typography>
+              {r.response && (
+                <Typography color="text.secondary">
+                  Response: {r.response}
+                </Typography>
+              )}
+              <Box sx={{ mt: 1 }}>
+                <Button
+                  onClick={() => updateStatus(r.id, "accepted")}
+                  disabled={r.status !== "pending"}
+                  sx={{ mr: 1 }}
+                >
+                  Accept
+                </Button>
+                <Button
+                  onClick={() => updateStatus(r.id, "denied")}
+                  disabled={r.status !== "pending"}
+                  sx={{ mr: 1 }}
+                >
+                  Deny
+                </Button>
+                {r.type === "text" && (
+                  <Button onClick={() => openRespond(r)}>Respond</Button>
+                )}
+              </Box>
+            </Paper>
+          );
+        })}
       </List>
 
-      {/* Respond Dialog */}
       <Dialog
         open={respDialog.open}
         onClose={() => setRespDialog({ ...respDialog, open: false })}

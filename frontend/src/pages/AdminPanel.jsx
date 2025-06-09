@@ -27,7 +27,7 @@ export default function AdminPanel() {
 
   // Load suppliers once
   useEffect(() => {
-    fetch("http://localhost:8080/api/suppliers")
+    fetch("/api/suppliers")
       .then((res) => res.json())
       .then((data) => setSuppliers(data))
       .catch((err) => console.error("Failed to fetch suppliers:", err));
@@ -36,7 +36,7 @@ export default function AdminPanel() {
   // When supplier changes, load its products
   useEffect(() => {
     if (!form.supplierId) return;
-    fetch(`http://localhost:8080/api/products?supplierId=${form.supplierId}`)
+    fetch(`/api/products?supplierId=${form.supplierId}`)
       .then((res) => res.json())
       .then((data) => setProducts(data))
       .catch((err) => console.error("Failed to fetch products:", err));

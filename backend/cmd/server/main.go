@@ -33,17 +33,30 @@ func main() {
 	mux.HandleFunc("/api/products", middleware.WithCORS(handlers.GetProductsBySupplier))
 	mux.HandleFunc("/api/worker/rapports", middleware.WithCORS(handlers.GetWorkerRapports))
 
-	mux.HandleFunc("/api/rapports", middleware.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "GET" {
-			middleware.WithCORS(handlers.GetAllRapports)(w, r)
-			return
+	mux.Handle("/api/rapports", middleware.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case "GET":
+			handlers.GetAllRapports(w, r)
+		case "POST":
+			handlers.CreateRapport(w, r)
+		default:
+			http.NotFound(w, r)
 		}
-		if r.Method == "POST" {
-			middleware.WithCORS(handlers.CreateRapport)(w, r)
-			return
-		}
+	})))
 
-		http.NotFound(w, r)
+	mux.Handle("/api/rapports/", middleware.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		switch {
+		case strings.HasSuffix(r.URL.Path, "/status") && r.Method == "POST":
+			handlers.UpdateRapportStatus(w, r)
+		case strings.HasSuffix(r.URL.Path, "/respond") && r.Method == "POST":
+			handlers.RespondRapport(w, r)
+		default:
+			http.NotFound(w, r)
+		}
 	})))
 
 	mux.HandleFunc("/api/purchase-requests/", func(w http.ResponseWriter, r *http.Request) {

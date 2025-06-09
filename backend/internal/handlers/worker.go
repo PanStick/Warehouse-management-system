@@ -10,6 +10,7 @@ import (
 
 // GET /api/worker/tasks
 func GetWorkerTasks(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 	workerID := 1 // hardcoded for now
 
 	type TaskItem struct {
@@ -65,7 +66,6 @@ func GetWorkerTasks(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Row scan error", http.StatusInternalServerError)
 			return
 		}
-
 		if _, exists := accum[taskID]; !exists {
 			accum[taskID] = &taskAccumulator{taskType: taskType}
 		}
@@ -78,14 +78,13 @@ func GetWorkerTasks(w http.ResponseWriter, r *http.Request) {
 
 	var tasks []Task
 	for id, acc := range accum {
+		log.Printf(`%d`, id)
 		tasks = append(tasks, Task{
 			TaskID: id,
 			Type:   acc.taskType,
 			Items:  acc.items,
 		})
 	}
-
-	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(tasks)
 }
 

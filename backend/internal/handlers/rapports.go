@@ -6,32 +6,58 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 )
 
 // POST /api/rapports
 func CreateRapport(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
 	var req struct {
-		Type    string `json:"type"`
-		Content string `json:"content"`
+		Type       string  `json:"type"`
+		Content    *string `json:"content"`
+		DeliveryID *int    `json:"deliveryId"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
-	//hardcoded for now
+
+	if req.Type != "text" && req.Type != "delivery" {
+		http.Error(w, "Invalid type", http.StatusBadRequest)
+		return
+	}
+	if req.Type == "text" && (req.Content == nil || *req.Content == "") {
+		http.Error(w, "Content required", http.StatusBadRequest)
+		return
+	}
+	if req.Type == "delivery" && req.DeliveryID == nil {
+		http.Error(w, "Delivery ID required", http.StatusBadRequest)
+		return
+	}
+
+	// hardcoded for now
 	workerID := 1
 
-	_, err := db.DB.Exec(
+	var contentVal string
+	if req.Type == "delivery" {
+		contentVal = strconv.Itoa(*req.DeliveryID)
+	} else {
+		contentVal = *req.Content
+	}
+
+	if _, err := db.DB.Exec(
 		`INSERT INTO rapports (workerID, type, content) VALUES (?, ?, ?)`,
-		workerID, req.Type, req.Content,
-	)
-	if err != nil {
+		workerID, req.Type, contentVal,
+	); err != nil {
 		http.Error(w, "Insert failed", http.StatusInternalServerError)
 		return
 	}
+
 	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(`{"status":"ok"}`))
+	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 }
 
 // GET /api/worker/rapports
@@ -163,4 +189,78 @@ func GetAllRapports(w http.ResponseWriter, r *http.Request) {
 		out = append(out, r)
 	}
 	json.NewEncoder(w).Encode(out)
+}
+
+// POST /api/rapports/{id}/status
+func UpdateRapportStatus(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	id := strings.TrimPrefix(r.URL.Path, "/api/rapports/")
+	id = strings.TrimSuffix(id, "/status")
+
+	// decode & validate
+	var payload struct {
+		Status string `json:"status"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+	if payload.Status != "accepted" && payload.Status != "denied" {
+		http.Error(w, "Invalid status value", http.StatusBadRequest)
+		return
+	}
+
+	_, err := db.DB.Exec(
+		`UPDATE rapports 
+           SET status = ?, updated_at = NOW() 
+         WHERE id = ?`,
+		payload.Status, id,
+	)
+	if err != nil {
+		http.Error(w, "Failed to update status", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+}
+
+// POST /api/rapports/{id}/respond
+func RespondRapport(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	// extract the {id} from the path
+	id := strings.TrimPrefix(r.URL.Path, "/api/rapports/")
+	id = strings.TrimSuffix(id, "/respond")
+
+	// decode & validate
+	var payload struct {
+		Response string `json:"response"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+	if strings.TrimSpace(payload.Response) == "" {
+		http.Error(w, "Response cannot be empty", http.StatusBadRequest)
+		return
+	}
+
+	// update both the response text and bump status to "responded"
+	_, err := db.DB.Exec(
+		`UPDATE rapports 
+           SET response   = ?,
+               status     = 'responded',
+               updated_at = NOW()
+         WHERE id = ?`,
+		payload.Response, id,
+	)
+	if err != nil {
+		http.Error(w, "Failed to save response", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 }

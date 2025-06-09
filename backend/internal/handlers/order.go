@@ -39,18 +39,28 @@ func CreateOrderedProduct(w http.ResponseWriter, r *http.Request) {
 
 // GET /api/ordered-products
 func GetAllOrderedProducts(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
 	type Order struct {
 		ID             int     `json:"id"`
 		ProductID      int     `json:"productID"`
+		ProductName    string  `json:"productName"`
 		Quantity       float64 `json:"quantity"`
 		ExpirationDate *string `json:"expirationDate"`
 		CreatedAt      string  `json:"created_at"`
 	}
 
 	rows, err := db.DB.Query(`
-        SELECT id, productID, quantity, expirationDate, created_at
-        FROM orderedProducts
-        ORDER BY id DESC
+        SELECT
+            op.id,
+            op.productID,
+            p.productName,
+            op.quantity,
+            op.expirationDate,
+            op.created_at
+        FROM orderedProducts op
+        JOIN products p ON p.id = op.productID
+        ORDER BY op.id DESC
     `)
 	if err != nil {
 		http.Error(w, "Database error", http.StatusInternalServerError)
@@ -64,20 +74,24 @@ func GetAllOrderedProducts(w http.ResponseWriter, r *http.Request) {
 		var exp sql.NullString
 		var created time.Time
 
-		if err := rows.Scan(&o.ID, &o.ProductID, &o.Quantity, &exp, &created); err != nil {
+		if err := rows.Scan(
+			&o.ID,
+			&o.ProductID,
+			&o.ProductName,
+			&o.Quantity,
+			&exp,
+			&created,
+		); err != nil {
 			http.Error(w, "Scan error", http.StatusInternalServerError)
 			return
 		}
 
-		// Handle optional expirationDate
 		if exp.Valid {
 			o.ExpirationDate = &exp.String
 		}
 		o.CreatedAt = created.Format(time.RFC3339)
-
 		orders = append(orders, o)
 	}
 
-	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(orders)
 }
