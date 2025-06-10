@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { TextField, Button, Typography, Box } from "@mui/material";
+import { TextField, Button, Typography, Box, Toolbar } from "@mui/material";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
@@ -10,7 +10,6 @@ export default function LoginForm() {
   const [password, setPassword] = useState("");
 
   const handleLogin = async () => {
-
     try {
       const res = await fetch("/api/login", {
         method: "POST",
@@ -27,7 +26,7 @@ export default function LoginForm() {
       //alert(data.message);
 
       const role = data.role;
-      localStorage.setItem('role', role);
+      localStorage.setItem("role", role);
       localStorage.setItem("userId", data.userId);
       localStorage.setItem("email", data.email);
       setRole(role);
@@ -48,14 +47,15 @@ export default function LoginForm() {
         default:
           navigate("/");
       }
-
     } catch (err) {
       alert(err.message);
     }
   };
 
   return (
-    <Box sx={{ mt: 2 }}>
+    <>
+      <Toolbar />
+      <Box sx={{ mt: 2 }}>
         <Typography variant="h5">Login</Typography>
         <TextField
           fullWidth
@@ -77,9 +77,15 @@ export default function LoginForm() {
           autoComplete="off"
           required
         />
-        <Button onClick={handleLogin} variant="contained" color="primary" component="button">
+        <Button
+          onClick={handleLogin}
+          variant="contained"
+          color="primary"
+          component="button"
+        >
           Login
         </Button>
-    </Box>
+      </Box>
+    </>
   );
 }
