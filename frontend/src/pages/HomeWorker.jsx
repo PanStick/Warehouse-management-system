@@ -28,7 +28,8 @@ export default function HomeWorker() {
 
   // initial data load
   useEffect(() => {
-    fetch("/api/worker/tasks")
+    const userId = localStorage.getItem("userId");
+    fetch(`/api/worker/tasks?workerId=${userId}`)
       .then((res) => {
         if (!res.ok) {
           console.error("Fetch tasks failed:", res.status, res.statusText);
