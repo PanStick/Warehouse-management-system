@@ -3,7 +3,10 @@ package handlers
 import (
 	"database/sql"
 	"encoding/json"
+	"log"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	"backend/internal/db"
@@ -95,4 +98,21 @@ func GetAllOrderedProducts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(orders)
+}
+
+// DELETE /api/ordered-products/{id}
+func DeleteOrderedProduct(w http.ResponseWriter, r *http.Request) {
+	log.Printf("Order delete called")
+	w.Header().Set("Content-Type", "application/json")
+	idStr := strings.TrimPrefix(r.URL.Path, "/api/ordered-products/")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		return
+	}
+	if _, err := db.DB.Exec(`DELETE FROM orderedProducts WHERE id = ?`, id); err != nil {
+		http.Error(w, "Delete failed", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
