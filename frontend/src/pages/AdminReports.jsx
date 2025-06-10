@@ -71,14 +71,11 @@ export default function AdminReports() {
   const sendResponse = async () => {
     try {
       const { id, text } = respDialog;
-      const res = await fetch(
-        `/api/rapports/${id}/respond`,
-        {
+      const res = await fetch(`/api/rapports/${id}/respond`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ response: text }),
-        }
-      );
+      });
       if (!res.ok) throw new Error(await res.text());
       setReports((prev) =>
         prev.map((r) =>
@@ -128,21 +125,27 @@ export default function AdminReports() {
               )}
               <Box sx={{ mt: 1 }}>
                 <Button
-                  onClick={() => updateStatus(r.id, "accepted")}
+                  onClick={() => updateStatus(r, "accepted")}
                   disabled={r.status !== "pending"}
                   sx={{ mr: 1 }}
+                  variant="contained"
+                  color="success"
                 >
                   Accept
                 </Button>
                 <Button
-                  onClick={() => updateStatus(r.id, "denied")}
+                  onClick={() => updateStatus(r, "denied")}
                   disabled={r.status !== "pending"}
                   sx={{ mr: 1 }}
+                  variant="contained"
+                  color="error"
                 >
                   Deny
                 </Button>
                 {r.type === "text" && (
-                  <Button onClick={() => openRespond(r)}>Respond</Button>
+                  <Button onClick={() => openRespond(r)} variant="contained">
+                    Respond
+                  </Button>
                 )}
               </Box>
             </Paper>
@@ -154,13 +157,13 @@ export default function AdminReports() {
         open={respDialog.open}
         onClose={() => setRespDialog({ ...respDialog, open: false })}
       >
-        <Box sx={{ p: 2 }}>
+        <Box sx={{ p: 3, width: 500 }}>
           <Typography variant="h6">Respond to Report</Typography>
           <TextField
             label="Response"
             fullWidth
             multiline
-            rows={4}
+            rows={8}
             sx={{ mt: 1 }}
             value={respDialog.text}
             onChange={(e) =>
