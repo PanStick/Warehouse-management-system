@@ -7,7 +7,7 @@ export default function ProductCard({ product, quantity, onQuantityChange, onAdd
     <Card sx={cardStyles}>
       <CardMedia
         component="img"
-        image={`http://localhost:8080/${product.image}`}
+        image={`/api/products/${product.id}/image`}
         alt={product.productName}
         sx={cardMediaStyles}
       />
