@@ -60,10 +60,16 @@ func CreateRapport(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 }
 
-// GET /api/worker/rapports
+// GET /api/worker/rapports?workerId=
 func GetWorkerRapports(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	workerID := 1 // hard-coded for now
+
+	q := r.URL.Query().Get("workerId")
+	workerID, err := strconv.Atoi(q)
+	if err != nil || workerID <= 0 {
+		http.Error(w, "Invalid or missing workerId", http.StatusBadRequest)
+		return
+	}
 
 	rows, err := db.DB.Query(`
       SELECT id, type, content, status, response, created_at
