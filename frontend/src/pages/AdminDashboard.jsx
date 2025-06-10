@@ -16,9 +16,7 @@ export default function AdminDashboard() {
   }, []);
 
   const fetchDetails = async (id) => {
-    const res = await fetch(
-      `/api/purchase-requests/${id}/details`
-    );
+    const res = await fetch(`/api/purchase-requests/${id}/details`);
     const data = await res.json();
     setRequests((prev) =>
       prev.map((r) => (r.id === id ? { ...r, details: data.items } : r))
@@ -46,7 +44,7 @@ export default function AdminDashboard() {
   };
 
   const handleAction = async (id, action) => {
-    const request = requests.find((r) => r.id === id);
+    let request = requests.find((r) => r.id === id);
 
     if (!request.details) {
       await fetchDetails(id);
@@ -54,34 +52,16 @@ export default function AdminDashboard() {
 
     let currentAssigned = assignedQuantities;
 
-    // not neccessary, check can happen in 
-    // POST api/purchase-requests/${id}/accept
-
-    // for (let item of request.details) {
-    //   const assignedForItem = Object.entries(
-    //     currentAssigned[item.itemID] || {}
-    //   ).reduce((sum, [batchID, qty]) => sum + qty, 0);
-    //   if (action === "accept" && assignedForItem !== item.quantity) {
-    //     setAssignmentError(
-    //       `Incorrect assignment for "${item.productName}". ` +
-    //         `Needed ${item.quantity}, but assigned ${assignedForItem}.`
-    //     );
-    //     return;
-    //   }
-    // }
-    setAssignmentError(null);
-
     if (
       action === "accept" &&
       (!request.details || Object.keys(currentAssigned).length === 0)
     ) {
-      const res = await fetch(
-        `/api/purchase-requests/${id}/details`
-      );
+      const res = await fetch(`/api/purchase-requests/${id}/details`);
       const data = await res.json();
       setRequests((prev) =>
         prev.map((r) => (r.id === id ? { ...r, details: data.items } : r))
       );
+      request = requests.find((r) => r.id === id);
       currentAssigned = await preloadAssignmentsIfNeeded(id, data.items);
     }
 
@@ -96,27 +76,20 @@ export default function AdminDashboard() {
           });
         }
       }
-
-      try {
-        const acceptRes = await fetch(
-          `/api/purchase-requests/${id}/accept`,
-          {
-            method: "POST",
-          }
-        );
-
-        if (!acceptRes.ok) {
-          const msg = await acceptRes.text();
-          if (msg.includes("Incomplete")) {
-            setAssignmentError(
-              "⚠ Incorrect quantities assigned. Please adjust and try again."
-            );
-          } else {
-            throw new Error("Failed to accept request");
-          }
+      for (let item of request.details) {
+        const assignedForItem = Object.entries(
+          currentAssigned[item.itemID] || {}
+        ).reduce((sum, [batchID, qty]) => sum + qty, 0);
+        if (action === "accept" && assignedForItem !== item.quantity) {
+          setAssignmentError(
+            `Incorrect assignment for "${item.productName}". ` +
+              `Needed ${item.quantity}, but assigned ${assignedForItem}.`
+          );
           return;
         }
-
+      }
+      setAssignmentError(null);
+      try {
         const assignRes = await fetch(
           `/api/purchase-requests/${id}/assign-batches`,
           {
@@ -129,6 +102,27 @@ export default function AdminDashboard() {
           throw new Error("Failed to assign batches");
         }
 
+        const acceptRes = await fetch(
+          `http://localhost:8080/api/purchase-requests/${id}/accept`,
+
+          {
+            method: "POST",
+          }
+        );
+
+        if (!acceptRes.ok) {
+          const msg = await acceptRes.text();
+
+          if (msg.includes("Incomplete")) {
+            setAssignmentError(
+              "⚠ Incorrect quantities assigned. Please adjust and try again."
+            );
+          } else {
+            throw new Error("Failed to accept request");
+          }
+
+          return;
+        }
 
         setAssignmentError(null);
         setExpandedId(null); // collapse batch section
@@ -145,9 +139,7 @@ export default function AdminDashboard() {
       setExpandedId(null);
     }
 
-    const res = await fetch(
-      `/api/purchase-requests/${id}`
-    );
+    const res = await fetch(`/api/purchase-requests/${id}`);
     const updated = await res.json();
     setRequests((prev) =>
       prev.map((r) => (r.id === id ? { ...r, ...updated } : r))
