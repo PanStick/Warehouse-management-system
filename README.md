@@ -1,4 +1,4 @@
-Prerequisites
+# Prerequisites
 
 Docker
 
@@ -6,16 +6,16 @@ Docker Compose v2+
 
 (Optional) Node.js & npm & Go
 
+# Launching
 
-1.
 cp .env.example .env
 
-Edit .env to match credentials
+Edit .env to match credentials··
 
-2.
+
 docker compose up --build
 
-older CLI: docker-compose up --build
+older CLI: docker-compose up --build··
 
 brings up three services:
 
@@ -23,22 +23,20 @@ brings up three services:
 
 2.backend (localhost:8080)
 
-3.frontend (localhost:3000)
+3.frontend (localhost:3000)··
 
-3. verification
+Verification
 
 docker compose ps
-
 docker compose logs -f backend
+docker compose exec mysql mysql -u {user} -p auth_demo -e "SHOW TABLES;"··
 
-docker compose exec mysql mysql -u {user} -p auth_demo -e "SHOW TABLES;"
 
-4. 
 frontend: http://localhost:3000
 
-backend healthcheck: curl http://localhost:8080/api/purchase-requests
+backend healthcheck: curl http://localhost:8080/api/purchase-requests··
 
-5. shutdown
+Shutdown
 
 docker compose down
 
@@ -46,17 +44,17 @@ docker compose down
 
 
 
-Running locally without docker
+# Running locally without docker
 
-1. Backend
+Backend
 
 cd backend
 
 go mod download
 
-go run cmd/server/main.go
+go run cmd/server/main.go··
 
-2. Frontend
+Frontend
 
 cd frontend
 
