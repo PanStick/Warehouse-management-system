@@ -420,6 +420,12 @@ func GetPurchaseRequestDetails(w http.ResponseWriter, r *http.Request) {
 func AssignBatches(w http.ResponseWriter, r *http.Request) {
 	idStr := strings.TrimPrefix(r.URL.Path, "/api/purchase-requests/")
 	idStr = strings.TrimSuffix(idStr, "/assign-batches")
+	requestID, err := strconv.Atoi(idStr)
+
+	if err != nil {
+		http.Error(w, "Invalid request ID", http.StatusBadRequest)
+		return
+	}
 
 	type BatchAssignment struct {
 		ItemID   int     `json:"itemID"`
@@ -442,15 +448,20 @@ func AssignBatches(w http.ResponseWriter, r *http.Request) {
 	defer tx.Rollback()
 
 	// Clear previous assignments for the request
-	_, err = tx.Exec(`DELETE ab FROM assigned_batches ab
+	res, err := tx.Exec(`DELETE ab FROM assigned_batches ab
 		JOIN purchase_items pi ON ab.itemID = pi.id
-		WHERE pi.requestID = ?`, idStr)
+		WHERE pi.requestID = ?`, requestID)
+
 	if err != nil {
 		http.Error(w, "Failed to clear previous assignments", http.StatusInternalServerError)
 		return
 	}
 
+	count, _ := res.RowsAffected()
+	log.Printf("Deleted %d previous assignments", count)
+
 	for _, b := range payload.Batches {
+		log.Printf("Assigning: itemID=%d, batchID=%d, quantity=%.2f", b.ItemID, b.BatchID, b.Quantity)
 		_, err := tx.Exec(`INSERT INTO assigned_batches (itemID, batchID, quantity) VALUES (?, ?, ?)`,
 			b.ItemID, b.BatchID, b.Quantity)
 		if err != nil {
