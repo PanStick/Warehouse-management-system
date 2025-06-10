@@ -128,6 +128,7 @@ func GetBatchesForProduct(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(result)
 }
 
+// GET /api/products/${product.id}/image
 func GetProductImageHandler(w http.ResponseWriter, r *http.Request) {
 
 	// parts := strings.Split(r.URL.Path, "/")
@@ -146,7 +147,7 @@ func GetProductImageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var imagePath string
+	var imagePath sql.NullString
 	err = db.DB.QueryRow("SELECT image FROM products WHERE id = ?", id).Scan(&imagePath)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -157,7 +158,13 @@ func GetProductImageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fullPath := filepath.Join("assets", imagePath)
+	var fullPath string
+	p := imagePath.String
+	if strings.HasPrefix(p, "assets"+string(os.PathSeparator)) || strings.HasPrefix(p, "assets/") {
+		fullPath = p
+	} else {
+		fullPath = filepath.Join("assets", p)
+	}
 	file, err := os.Open(fullPath)
 	if err != nil {
 		http.Error(w, "Image not found", http.StatusNotFound)

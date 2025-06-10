@@ -28,11 +28,26 @@ func main() {
 	mux.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("./assets"))))
 	mux.HandleFunc("/api/purchase", middleware.WithCORS(handlers.CreatePurchaseRequest))
 	mux.HandleFunc("/api/purchase-requests", middleware.WithCORS(handlers.GetAllPurchaseRequests))
-	mux.HandleFunc("/api/products/", middleware.WithCORS(handlers.GetBatchesForProduct))
 	mux.HandleFunc("/api/purchase-requests/user/", middleware.WithCORS(handlers.GetPurchaseRequestsByUser))
-	mux.HandleFunc("/api/products", middleware.WithCORS(handlers.GetProductsBySupplier))
 	mux.HandleFunc("/api/worker/rapports", middleware.WithCORS(handlers.GetWorkerRapports))
 
+	mux.HandleFunc("/api/products/", middleware.WithCORS(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/image") {
+			handlers.GetProductImageHandler(w, r)
+		}
+		handlers.GetBatchesForProduct(w, r)
+	}))
+
+	mux.HandleFunc("/api/products", middleware.WithCORS(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			handlers.GetProductsBySupplier(w, r)
+		case http.MethodPost:
+			handlers.CreateProduct(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
 	mux.Handle("/api/rapports", middleware.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case "GET":
@@ -84,6 +99,14 @@ func main() {
 	mux.HandleFunc("/api/worker/tasks", middleware.WithCORS(handlers.GetWorkerTasks))
 	mux.HandleFunc("/api/worker/tasks/", middleware.WithCORS(handlers.CompleteWorkerTask))
 
+	mux.HandleFunc("/api/ordered-products/", middleware.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodDelete {
+			handlers.DeleteOrderedProduct(w, r)
+			return
+		}
+		http.NotFound(w, r)
+	})))
+
 	mux.HandleFunc("/api/ordered-products", middleware.WithCORS(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
@@ -95,9 +118,37 @@ func main() {
 		}
 	}))
 
-	mux.HandleFunc("/api/suppliers", middleware.WithCORS(handlers.GetSuppliers))
+	mux.HandleFunc("/api/suppliers", middleware.WithCORS(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			handlers.GetSuppliers(w, r)
+		case http.MethodPost:
+			handlers.CreateSupplier(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
 
 	// mux.HandleFunc("/api/verify", middleware.WithCORS(handlers.VerifyHandler))
+
+	mux.HandleFunc("/api/tasks", middleware.WithCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			handlers.CreateTask(w, r)
+			return
+		}
+		http.NotFound(w, r)
+	})))
+
+	mux.HandleFunc("/api/users", middleware.WithCORS(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			handlers.GetAllUsers(w, r) // optional
+		case http.MethodPost:
+			handlers.CreateUser(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
 
 	fs := http.FileServer(http.Dir("./frontend/build"))
 	mux.Handle("/static/", fs)
