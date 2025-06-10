@@ -44,21 +44,30 @@ export default function AdminReports() {
     loadReports();
   }, []);
 
-  const updateStatus = async (id, status) => {
+  const updateStatus = async (report, status) => {
     try {
-      const res = await fetch(
-        `/api/rapports/${id}/status`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status }),
-        }
-      );
+      const res = await fetch(`/api/rapports/${report.id}/status`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
       if (!res.ok) throw new Error(await res.text());
       // update local state
       setReports((prev) =>
-        prev.map((r) => (r.id === id ? { ...r, status } : r))
+        prev.map((r) => (r.id === report.id ? { ...r, status } : r))
       );
+
+      if (report.type === "delivery" && status === "accepted") {
+        const orderId = parseInt(report.content, 10);
+
+        await fetch("/api/tasks", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type: "unload", orderId, workerId: 1 }),
+        });
+
+        setDeliveries((ds) => ds.filter((d) => d.id !== orderId));
+      }
     } catch (err) {
       console.error(err);
       alert("Failed to update status");
@@ -72,9 +81,9 @@ export default function AdminReports() {
     try {
       const { id, text } = respDialog;
       const res = await fetch(`/api/rapports/${id}/respond`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ response: text }),
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ response: text }),
       });
       if (!res.ok) throw new Error(await res.text());
       setReports((prev) =>
