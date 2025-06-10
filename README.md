@@ -28,7 +28,9 @@ brings up three services:
 Verification
 
 docker compose ps
+
 docker compose logs -f backend
+
 docker compose exec mysql mysql -u {user} -p auth_demo -e "SHOW TABLES;"··
 
 
