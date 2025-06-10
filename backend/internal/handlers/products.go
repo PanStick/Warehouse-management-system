@@ -4,12 +4,14 @@ import (
 	"backend/internal/db"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // GET /api/products/with-stock
@@ -179,4 +181,66 @@ func GetProductImageHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", contentType)
 	io.Copy(w, file)
+}
+
+// POST api/products
+func CreateProduct(w http.ResponseWriter, r *http.Request) {
+
+	err := r.ParseMultipartForm(10 << 20) // 10MB limit
+	if err != nil {
+		http.Error(w, "Could not parse form", http.StatusBadRequest)
+		return
+	}
+
+	supplierID, _ := strconv.Atoi(r.FormValue("supplierId"))
+	name := r.FormValue("productName")
+	unitType := r.FormValue("unitType") //default: unit
+	price, _ := strconv.ParseFloat(r.FormValue("price"), 64)
+
+	imagePath := ""
+	file, header, err := r.FormFile("image")
+
+	if err == nil {
+		defer file.Close()
+		ext := strings.ToLower(filepath.Ext(header.Filename))
+		switch ext {
+		case ".jpg", ".jpeg", ".png", ".gif":
+		default:
+			http.Error(w, "Unsupported image type", http.StatusBadRequest)
+			return
+		}
+
+		dir := "./assets/images/products"
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			http.Error(w, "Could not create image dir", http.StatusInternalServerError)
+			return
+		}
+		filename := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
+		fullPath := filepath.Join(dir, filename)
+
+		out, err := os.Create(fullPath)
+		if err != nil {
+			http.Error(w, "Could not save image", http.StatusInternalServerError)
+			return
+		}
+		defer out.Close()
+		io.Copy(out, file)
+
+		imagePath = "images/products/" + filename
+	}
+
+	_, err = db.DB.Exec(
+		`INSERT INTO products 
+       (productName, unitType, supplierID, shortExpirationDate, image, price)
+     VALUES (?, ?, ?, NULL, ?, ?)`,
+		name, unitType, supplierID, imagePath, price,
+	)
+	if err != nil {
+		http.Error(w, "Insert failed", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 }
