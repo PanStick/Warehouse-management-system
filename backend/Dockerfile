@@ -19,4 +19,5 @@ COPY --from=builder /app/assets ./assets
 COPY .env .env
 
 EXPOSE 8080
+RUN mkdir -p ./assets/images/products
 CMD ["./server"]
