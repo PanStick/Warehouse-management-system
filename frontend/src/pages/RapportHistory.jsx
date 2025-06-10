@@ -14,7 +14,7 @@ export default function RapportHistory() {
   useEffect(() => {
     async function load() {
       try {
-        const res = await fetch("http://localhost:8080/api/worker/rapports");
+        const res = await fetch("/api/worker/rapports");
         if (!res.ok) throw new Error("Failed to load rapports");
         const data = await res.json();
         setRapports(Array.isArray(data) ? data : []);

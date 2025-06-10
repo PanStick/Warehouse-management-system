@@ -9,7 +9,7 @@ export default function HomeCustomer() {
   const [showOnlyAvailable, setShowOnlyAvailable] = useState(false);
 
   useEffect(() => {
-    fetch("http://localhost:8080/api/products/with-stock")
+    fetch("/api/products/with-stock")
       .then((res) => res.json())
       .then((data) => setProducts(data))
       .catch((err) => console.error("Error fetching products:", err));

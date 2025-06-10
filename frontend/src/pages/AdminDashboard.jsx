@@ -9,7 +9,7 @@ export default function AdminDashboard() {
   const [assignmentError, setAssignmentError] = useState(null); // add this to top-level state
 
   useEffect(() => {
-    fetch("http://localhost:8080/api/purchase-requests")
+    fetch("/api/purchase-requests")
       .then((res) => res.json())
       .then((data) => setRequests(Array.isArray(data) ? data : []))
       .catch((err) => console.error("Failed to fetch requests:", err));
@@ -17,7 +17,7 @@ export default function AdminDashboard() {
 
   const fetchDetails = async (id) => {
     const res = await fetch(
-      `http://localhost:8080/api/purchase-requests/${id}/details`
+      `/api/purchase-requests/${id}/details`
     );
     const data = await res.json();
     setRequests((prev) =>
@@ -54,29 +54,29 @@ export default function AdminDashboard() {
 
     let currentAssigned = assignedQuantities;
 
-    for (let item of request.details) {
-      const assignedForItem = Object.entries(
-        currentAssigned[item.itemID] || {}
-      ).reduce((sum, [batchID, qty]) => sum + qty, 0);
-      if (action === "accept" && assignedForItem !== item.quantity) {
-        setAssignmentError(
-          `Incorrect assignment for "${item.productName}". ` +
-            `Needed ${item.quantity}, but assigned ${assignedForItem}.`
-        );
-        return;
-      }
-    }
-    setAssignmentError(null);
+    // not neccessary, check can happen in 
+    // POST api/purchase-requests/${id}/accept
 
-    //not working properly
-    //if quantity assigned is incorrect, the backend may still update the quant
+    // for (let item of request.details) {
+    //   const assignedForItem = Object.entries(
+    //     currentAssigned[item.itemID] || {}
+    //   ).reduce((sum, [batchID, qty]) => sum + qty, 0);
+    //   if (action === "accept" && assignedForItem !== item.quantity) {
+    //     setAssignmentError(
+    //       `Incorrect assignment for "${item.productName}". ` +
+    //         `Needed ${item.quantity}, but assigned ${assignedForItem}.`
+    //     );
+    //     return;
+    //   }
+    // }
+    setAssignmentError(null);
 
     if (
       action === "accept" &&
       (!request.details || Object.keys(currentAssigned).length === 0)
     ) {
       const res = await fetch(
-        `http://localhost:8080/api/purchase-requests/${id}/details`
+        `/api/purchase-requests/${id}/details`
       );
       const data = await res.json();
       setRequests((prev) =>
@@ -98,19 +98,8 @@ export default function AdminDashboard() {
       }
 
       try {
-        const assignRes = await fetch(
-          `/api/purchase-requests/${id}/assign-batches`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ batches: flat }),
-          }
-        );
-        if (!assignRes.ok) {
-          throw new Error("Failed to assign batches");
-        }
         const acceptRes = await fetch(
-          `http://localhost:8080/api/purchase-requests/${id}/accept`,
+          `/api/purchase-requests/${id}/accept`,
           {
             method: "POST",
           }
@@ -128,6 +117,19 @@ export default function AdminDashboard() {
           return;
         }
 
+        const assignRes = await fetch(
+          `/api/purchase-requests/${id}/assign-batches`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ batches: flat }),
+          }
+        );
+        if (!assignRes.ok) {
+          throw new Error("Failed to assign batches");
+        }
+
+
         setAssignmentError(null);
         setExpandedId(null); // collapse batch section
       } catch (err) {
@@ -136,7 +138,7 @@ export default function AdminDashboard() {
         return;
       }
     } else if (action === "deny") {
-      await fetch(`http://localhost:8080/api/purchase-requests/${id}/deny`, {
+      await fetch(`/api/purchase-requests/${id}/deny`, {
         method: "POST",
       });
 
@@ -144,7 +146,7 @@ export default function AdminDashboard() {
     }
 
     const res = await fetch(
-      `http://localhost:8080/api/purchase-requests/${id}`
+      `/api/purchase-requests/${id}`
     );
     const updated = await res.json();
     setRequests((prev) =>

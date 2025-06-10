@@ -47,7 +47,7 @@ export default function AdminReports() {
   const updateStatus = async (id, status) => {
     try {
       const res = await fetch(
-        `http://localhost:8080/api/rapports/${id}/status`,
+        `/api/rapports/${id}/status`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -72,7 +72,7 @@ export default function AdminReports() {
     try {
       const { id, text } = respDialog;
       const res = await fetch(
-        `http://localhost:8080/api/rapports/${id}/respond`,
+        `/api/rapports/${id}/respond`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

@@ -15,7 +15,7 @@ export default function OrderHistory() {
 
   useEffect(() => {
     if (!userId) return;
-    fetch(`http://localhost:8080/api/purchase-requests/user/${userId}`)
+    fetch(`/api/purchase-requests/user/${userId}`)
       .then(res => res.json())
       .then(data => setOrders(Array.isArray(data) ? data : []))
       .catch(err => console.error(err));
