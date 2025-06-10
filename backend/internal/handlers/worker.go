@@ -78,7 +78,6 @@ func GetWorkerTasks(w http.ResponseWriter, r *http.Request) {
 
 	var tasks []Task
 	for id, acc := range accum {
-		log.Printf(`%d`, id)
 		tasks = append(tasks, Task{
 			TaskID: id,
 			Type:   acc.taskType,

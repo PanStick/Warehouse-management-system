@@ -68,6 +68,9 @@ export default function AdminDashboard() {
     }
     setAssignmentError(null);
 
+    //not working properly
+    //if quantity assigned is incorrect, the backend may still update the quant
+
     if (
       action === "accept" &&
       (!request.details || Object.keys(currentAssigned).length === 0)

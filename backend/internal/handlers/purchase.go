@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 )
 
 // POST /api/purchase
@@ -390,7 +389,7 @@ func GetPurchaseRequestDetails(w http.ResponseWriter, r *http.Request) {
 		}
 		for batchRows.Next() {
 			var b Batch
-			var expRaw sql.NullString
+			var expRaw sql.NullTime
 			if err := batchRows.Scan(&b.BatchID, &b.Quantity, &expRaw); err != nil {
 				log.Println("Failed to scan batch:", err)
 				http.Error(w, "Failed to scan batch", http.StatusInternalServerError)
@@ -398,12 +397,10 @@ func GetPurchaseRequestDetails(w http.ResponseWriter, r *http.Request) {
 			}
 			if expRaw.Valid {
 				// Parse the string manually
-				t, err := time.Parse("2006-01-02", expRaw.String)
-				if err == nil {
-					str := t.Format("2006-01-02")
-					b.ExpirationDate = &str
-				}
+				str := expRaw.Time.Format("2006-01-02")
+				b.ExpirationDate = &str
 			}
+			//log.Printf("%d", expRaw)
 
 			item.Batches = append(item.Batches, b)
 		}

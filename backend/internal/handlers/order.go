@@ -9,7 +9,7 @@ import (
 	"backend/internal/db"
 )
 
-// CreateOrderedProduct handles POST /api/ordered-products
+// POST /api/ordered-products
 func CreateOrderedProduct(w http.ResponseWriter, r *http.Request) {
 	var payload struct {
 		ProductID      int     `json:"productID"`
@@ -71,7 +71,7 @@ func GetAllOrderedProducts(w http.ResponseWriter, r *http.Request) {
 	var orders []Order
 	for rows.Next() {
 		var o Order
-		var exp sql.NullString
+		var exp sql.NullTime
 		var created time.Time
 
 		if err := rows.Scan(
@@ -87,7 +87,8 @@ func GetAllOrderedProducts(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if exp.Valid {
-			o.ExpirationDate = &exp.String
+			str := exp.Time.Format("2006-01-02")
+			o.ExpirationDate = &str
 		}
 		o.CreatedAt = created.Format(time.RFC3339)
 		orders = append(orders, o)
