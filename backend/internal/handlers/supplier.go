@@ -38,3 +38,35 @@ func GetSuppliers(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(suppliers)
 }
+
+// POST api/suppliers
+func CreateSupplier(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	var req struct {
+		SupplierName string `json:"supplierName"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+	if req.SupplierName == "" {
+		http.Error(w, "Supplier name required", http.StatusBadRequest)
+		return
+	}
+
+	result, err := db.DB.Exec(
+		`INSERT INTO suppliers (supplierName) VALUES (?)`,
+		req.SupplierName,
+	)
+	if err != nil {
+		http.Error(w, "Insert failed", http.StatusInternalServerError)
+		return
+	}
+	id, _ := result.LastInsertId()
+
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"id":           id,
+		"supplierName": req.SupplierName,
+	})
+}
